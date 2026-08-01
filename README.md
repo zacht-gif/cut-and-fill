@@ -97,6 +97,13 @@ level is proved solvable on all three rather than assumed safe on the easy one.
 
 On touch screens, swipe the board to drive, tap to wait, or use the on-screen pad.
 
+**Haptics** fire on the four moments that carry meaning — a blocked push, a load
+dropping in, a run ending, a site finished — and stay silent on ordinary moves,
+since buzzing every keystroke is irritating and drains the battery. Toggle it
+from the header. The toggle only appears on touch devices that support
+vibration: desktop Chrome exposes the API but does nothing with it, and iOS
+Safari has no vibration API at all, so this is Android in practice.
+
 Undo works after a fatal move too — the fail screen offers it directly, so a
 misjudged crossing costs you one keypress, not the level.
 
@@ -109,11 +116,13 @@ names stay unique, which is what makes that safe.)
 
 ## Levels
 
-24 levels in three chapters:
+25 levels in three chapters:
 
-- **1–12** — pure grading. Push, plan, don't strand your dirt.
-- **13–18** — soft ground and live traffic.
-- **19–24** — gated haul roads and a tempo that climbs the longer you take.
+- **1–13** — pure grading. Push, plan, don't strand your dirt.
+- **14–19** — soft ground and live traffic.
+- **20–25** — gated haul roads and a tempo that climbs the longer you take.
+
+Play order follows measured cost, not par — see below.
 
 Every level ships with a **par equal to its proven optimal solution**, found by
 exhaustive search on the Operator shift. Par is genuinely achievable, never a

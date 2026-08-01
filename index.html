@@ -47,9 +47,11 @@ h1{font-size:20px;letter-spacing:.22em;text-transform:uppercase;
   color:#eaf4f9;font-weight:700}
 h1 span{color:var(--dozer)}
 .sub{color:var(--ink-dim);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
-#diffTag{cursor:pointer;border:1px solid var(--line);border-radius:5px;
-  padding:3px 9px;transition:.12s}
-#diffTag:hover{border-color:var(--accent);color:#eaf4f9}
+#diffTag,#hapticTag{cursor:pointer;border:1px solid var(--line);border-radius:5px;
+  padding:3px 9px;transition:.12s;display:inline-block}
+#diffTag:hover,#hapticTag:hover{border-color:var(--accent);color:#eaf4f9}
+#hapticTag[hidden]{display:none}
+#hapticTag.off{opacity:.5}
 
 .stats{width:100%;max-width:820px;display:flex;gap:8px;flex-wrap:wrap}
 .stat{flex:1 1 auto;min-width:72px;background:var(--panel);
@@ -277,6 +279,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div class="sub">
     <span id="levelName">Level 1</span> &nbsp;
     <span id="sStars">★ 0/72</span> &nbsp;
+    <span id="hapticTag" hidden>Buzz on</span>
     <span id="diffTag">Operator</span>
   </div>
 </header>
@@ -477,6 +480,20 @@ const LEVELS = [
     "#  $   $  #",
     "#o       o#",
     "###########"]},
+  // Bridges the jump to Final Grade. Measured cost went 10 -> 54 between
+  // Trench and the finale, which is where players stop finishing a game.
+  // Benched terraces: the only ways between them are the two side corridors,
+  // so every load takes a long haul, but the spare keeps it forgiving.
+  { name:"Benching", par:39, rows:[
+    "###########",
+    "#o       o#",
+    "# ####### #",
+    "#  $ $ $  #",
+    "# $     $ #",
+    "#    @    #",
+    "# ####### #",
+    "#o       o#",
+    "###########"]},
   { name:"Final Grade", par:66, rows:[
     "###########",
     "#o   #   o#",
@@ -648,7 +665,7 @@ const SOLUTIONS=[
   "RRR","RLL","RURUL","RUULDD","RRUL","DRRURDDULLLLLULDD",
   "ULDDRRRUULURRDDDLDRLLLLLUUURUL","ULDLURRDDLDRR",
   "RRRUULLLLLLDDDURRDDLLRRRRRRURUU","LLURULULURRRRRRDLDR",
-  "ULRRDDLLULUDDRRRRRRRUULURRDDD",
+  "ULRRDDLLULUDDRRRRRRRUULURRDDD","URURRDLDRURUUDDDDUULLLLLULLDRDLULUUDDDD",
   "URRUURUULDDDDLDRRRULDLUUUULURRDDLDDLLLLUURUULDDDDRDLLLURDRUUUURULL",
   "URRDRU","RRRRLDD","UURDLDRRULLLLLDL.UUU","ULLLDLUUURDRRRRDRRDRUUU",
   "ULLDLUURDRRRRRDRUU","RRRRRRLDDDDULUUULLDDDD","RRRRLDDD",
@@ -686,7 +703,29 @@ function load(){
   }
   return {best, clean,
           hints: Number.isInteger(raw.hints)?raw.hints:START_HINTS,
-          awarded: raw.awarded||{}};
+          awarded: raw.awarded||{},
+          haptics: raw.haptics!==false};
+}
+
+/**
+ * Haptics. Deliberately silent on ordinary moves — buzzing every keystroke is
+ * irritating and drains a phone. Only the four moments that carry meaning.
+ *
+ * Fired from the UI layer, never from step(), because the solver runs step()
+ * hundreds of thousands of times and must stay side-effect free.
+ *
+ * navigator.vibrate is Android-only; iOS Safari has no vibration API at all,
+ * so this is a no-op there rather than something to work around.
+ */
+const BUZZ={blocked:[10], fill:[18], fail:[45,60,45], win:[20,45,20,45,70]};
+// Desktop Chrome exposes navigator.vibrate but does nothing with it, so also
+// require a touch device — otherwise the toggle offers a setting that can't
+// possibly have an effect.
+const canBuzz = () => typeof navigator!=="undefined" && !!navigator.vibrate
+                      && (navigator.maxTouchPoints||0)>0;
+function buzz(kind){
+  if(!SV.haptics || !canBuzz()) return;
+  try{ navigator.vibrate(BUZZ[kind]); }catch(e){}
 }
 function save(){
   try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SV)); }catch(e){}
@@ -1419,6 +1458,7 @@ function doMove(dir){
   const snap=clone(st);
   const res=step(st,dir);
   if(!res.ok){
+    buzz("blocked");
     render();
     boardEl.classList.remove("shake");
     void boardEl.offsetWidth;
@@ -1427,8 +1467,9 @@ function doMove(dir){
   }
   past.push(snap);
   if(past.length>600) past.shift();
-  if(res.win){ render(); finish(); return; }
-  if(res.fail){ failed=res.fail; render(); lose(res.fail); return; }
+  if(st.filled.size>snap.filled.size) buzz("fill");   // a load just went in
+  if(res.win){ buzz("win"); render(); finish(); return; }
+  if(res.fail){ buzz("fail"); failed=res.fail; render(); lose(res.fail); return; }
   render();
 }
 
@@ -1567,6 +1608,21 @@ $("#lUndo").onclick=undo;
 $("#lReset").onclick=restart;
 $("#diffTag").onclick=()=>$("#diff").classList.add("on");
 $("#bHint").onclick=showHint;
+
+// only offer the toggle where vibration actually exists (Android, not iOS)
+function paintHaptics(){
+  const t=$("#hapticTag");
+  t.hidden=!canBuzz();
+  t.textContent=SV.haptics?"Buzz on":"Buzz off";
+  t.classList.toggle("off",!SV.haptics);
+}
+$("#hapticTag").onclick=()=>{
+  SV.haptics=!SV.haptics;
+  save();
+  paintHaptics();
+  buzz("fill");                 // confirm the new setting by feel
+};
+paintHaptics();
 
 let generating=false;
 async function newSite(tier, seed, label, key){
@@ -1707,9 +1763,12 @@ async function selfTest(){
     play(seq);
     ok(name, failed===reason, "seq "+seq+" -> "+failed);
   };
-  failCase("driving into soft ground sinks you", 12, "sank");
-  failCase("parking in a live lane gets you hit", 13, "hit");
-  failCase("dirt left in a lane causes a wreck", 13, "wreck");
+  // by name, never by position — inserting one level renumbers everything
+  // after it, and an index-keyed test fails while the game is perfectly fine
+  const at=n=>LEVELS.findIndex(L=>L.name===n);
+  failCase("driving into soft ground sinks you", at("Soft Ground"), "sank");
+  failCase("parking in a live lane gets you hit", at("Haul Road"), "hit");
+  failCase("dirt left in a lane causes a wreck", at("Haul Road"), "wreck");
 
   const frozen=st.moves; play("ULDR");
   ok("a failed run is frozen until undo", st.moves===frozen,
@@ -1718,23 +1777,25 @@ async function selfTest(){
   ok("undo revives a failed run", failed===null);
 
   // 4. undo must restore state exactly
-  loadLevel(17);
-  const snap=JSON.stringify([st.r,st.c,st.t,st.moves,
+  const undoLvl=at("Haul Road");
+  loadLevel(undoLvl);
+  const shot=()=>JSON.stringify([st.r,st.c,st.t,st.moves,
     st.piles.map(p=>[p.r,p.c,p.alive]),[...st.filled]]);
-  play("RRRRLDD");
-  for(let i=0;i<20;i++) undo();
-  const back=JSON.stringify([st.r,st.c,st.t,st.moves,
-    st.piles.map(p=>[p.r,p.c,p.alive]),[...st.filled]]);
-  ok("undo restores the opening position exactly", snap===back);
+  const snap=shot();
+  play(SOLUTIONS[undoLvl].slice(0,-1));      // stop short of winning
+  for(let i=0;i<40;i++) undo();
+  ok("undo restores the opening position exactly", snap===shot());
 
-  // 5. every level must stay solvable on every shift
+  // 5. every timed level must stay solvable on every shift. Selected by what
+  //    the level actually contains, so it can't drift as levels are reordered.
   let unsolvable=[];
   for(const d of DIFF_ORDER)
-    for(let i=12;i<LEVELS.length;i++){       // shifts only affect traffic levels
-      const r=solveDef(LEVELS[i],d,300000);
-      if(r.exhausted&&r.path===null) unsolvable.push(LEVELS[i].name+"/"+d);
-    }
-  ok("traffic levels stay solvable on all three shifts", !unsolvable.length,
+    LEVELS.forEach((L,i)=>{
+      if(!L.traffic && !L.escalate) return;  // shifts only affect timed levels
+      const r=solveDef(L,d,300000);
+      if(r.exhausted&&r.path===null) unsolvable.push(L.name+"/"+d);
+    });
+  ok("timed levels stay solvable on all three shifts", !unsolvable.length,
      unsolvable.join("; "));
 
   // 6. star thresholds
