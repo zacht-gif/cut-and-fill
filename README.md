@@ -103,6 +103,10 @@ misjudged crossing costs you one keypress, not the level.
 Progress and your best move count per level are saved in `localStorage`, and
 the game reopens on the last level you played.
 
+Scores are keyed by **level name**, not position, so reordering the campaign
+doesn't reattach your stars to the wrong puzzles. (`tools/test.py` enforces that
+names stay unique, which is what makes that safe.)
+
 ## Levels
 
 24 levels in three chapters:
@@ -417,7 +421,7 @@ cut-and-fill/
 
 ```bash
 py -3 tools/analyze.py                 # all levels
-py -3 tools/analyze.py --by trap       # ranked
+py -3 tools/analyze.py --by cost       # ranked by suggested play order
 py -3 tools/analyze.py --levels 8,12   # just these
 ```
 
@@ -437,6 +441,27 @@ position.
 
 Both are shares of the reachable space, so they compare across levels of very
 different sizes.
+
+**Cost** (`--by cost`) combines trap density with par: roughly the effort you
+expect to lose to a ruined run — how likely you are to wreck it, times how much
+work is gone when you do. Neither factor orders levels sensibly on its own. A
+4-move level can be trap-dense and still painless, because restarting costs
+nothing; a 66-move level at the same density is brutal. Ordering by cost is what
+the campaign order is based on.
+
+### Two design rules this measurement produced
+
+**Give tutorial levels a spare piece.** A level that teaches a mechanic by
+handing you exactly one load punishes you for learning. Corner Work measured 64%
+trap and Soft Ground 72% — both among the worst boards in the game, both in the
+first three levels of their chapter. A second usable load took them to 45% and
+38% without changing what they teach.
+
+**Check the spare is actually reachable.** The first spare added to Soft Ground
+sat on the bottom row, where nothing can be pushed up into the goal's row — the
+dozer would have to stand outside the map. It looked like a fix and measured
+like nothing (72% → 70%). Re-measure after every level edit; a change that looks
+right and does nothing is the easy failure here.
 
 ### A trap in measuring traps
 

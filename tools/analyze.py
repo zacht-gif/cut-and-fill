@@ -116,7 +116,7 @@ def main():
     ap.add_argument("--budget", type=float, default=90.0,
                     help="seconds to spend enumerating one level")
     ap.add_argument("--diff", choices=V.DIFF_ORDER, default=V.PAR_DIFF)
-    ap.add_argument("--by", choices=["order", "trap", "lethality", "par"],
+    ap.add_argument("--by", choices=["order", "trap", "lethality", "par", "cost"],
                     default="order", help="sort the summary")
     ap.add_argument("--levels", help="1-based list, e.g. 8,10,12")
     args = ap.parse_args()
@@ -160,13 +160,19 @@ def main():
 
     ranked = [r for r in rows if r[3]["trap"] is not None]
     if ranked and args.by != "order":
+        # `cost` ~ expected effort lost to a ruined run: how likely you are to
+        # wreck it, times how much work you lose when you do. Neither factor
+        # alone orders levels sensibly — a 4-move level can be trap-dense and
+        # still painless, because restarting costs nothing.
         key = {"trap": lambda x: -x[3]["trap"],
                "lethality": lambda x: -x[3]["lethality"],
-               "par": lambda x: -x[2]}[args.by]
-        print(f"\nRanked by {args.by}:")
-        for i, name, par, r in sorted(ranked, key=key):
+               "par": lambda x: -x[2],
+               "cost": lambda x: -(x[3]["trap"] * x[2])}[args.by]
+        print(f"\nRanked by {args.by} (ascending = suggested play order):")
+        for i, name, par, r in sorted(ranked, key=key, reverse=True):
             print(f"  {i:>3} {name:<17} par {par:>3}   "
-                  f"trap {r['trap']*100:>5.1f}%   lethal {r['lethality']*100:>5.1f}%")
+                  f"trap {r['trap']*100:>5.1f}%   lethal {r['lethality']*100:>5.1f}%"
+                  f"   cost {r['trap']*par:>5.1f}")
     return 0
 
 

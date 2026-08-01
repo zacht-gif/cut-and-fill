@@ -407,19 +407,21 @@ const LEVELS = [
     "#######",
     "#o$@$o#",
     "#######"]},
+  // A second load so learning the lesson doesn't cost the run: measured at
+  // 64% trap density with a single pile, which made the level teaching
+  // repositioning one of the most punishing boards in the game.
   { name:"Corner Work", par:5, rows:[
     "#######",
     "#  o  #",
-    "# $   #",
+    "# $ $ #",
     "#  @  #",
     "#######"]},
-  { name:"Two Lifts", par:13, rows:[
+  { name:"Decoy", par:6, rows:[
     "########",
-    "#o     #",
-    "# $    #",
+    "#   o  #",
+    "# $$$  #",
     "#  @   #",
-    "#  $   #",
-    "#    o #",
+    "#  o   #",
     "########"]},
   { name:"Tight Fit", par:4, rows:[
     "#######",
@@ -435,13 +437,6 @@ const LEVELS = [
     "# ##### #",
     "#o     o#",
     "#########"]},
-  { name:"Decoy", par:6, rows:[
-    "########",
-    "#   o  #",
-    "# $$$  #",
-    "#  @   #",
-    "#  o   #",
-    "########"]},
   { name:"Yard Work", par:30, rows:[
     "##########",
     "#o      o#",
@@ -450,6 +445,22 @@ const LEVELS = [
     "#  $  $  #",
     "#o      o#",
     "##########"]},
+  { name:"Two Lifts", par:13, rows:[
+    "########",
+    "#o     #",
+    "# $    #",
+    "#  @   #",
+    "#  $   #",
+    "#    o #",
+    "########"]},
+  { name:"Site Prep", par:31, rows:[
+    "###########",
+    "#o   $   o#",
+    "#  #   #  #",
+    "# $  @  $ #",
+    "#  #   #  #",
+    "#o   $   o#",
+    "###########"]},
   { name:"Island", par:19, rows:[
     "##########",
     "#   o    #",
@@ -466,14 +477,6 @@ const LEVELS = [
     "#  $   $  #",
     "#o       o#",
     "###########"]},
-  { name:"Site Prep", par:31, rows:[
-    "###########",
-    "#o   $   o#",
-    "#  #   #  #",
-    "# $  @  $ #",
-    "#  #   #  #",
-    "#o   $   o#",
-    "###########"]},
   { name:"Final Grade", par:66, rows:[
     "###########",
     "#o   #   o#",
@@ -483,13 +486,14 @@ const LEVELS = [
     "#  $   $  #",
     "#o   @   o#",
     "###########"]},
-
-  /* ---- chapter two: soft ground and live traffic ---- */
-
-  { name:"Soft Ground", par:7, rows:[
+/* ---- chapter two: soft ground and live traffic ---- */
+  // Likewise: the level that teaches you soft ground eats dirt measured at
+  // 72% trap, because it handed you exactly one load to learn that with.
+  { name:"Soft Ground", par:6, rows:[
     "#########",
     "#  ~~~  #",
     "# $   o #",
+    "#   $   #",
     "#  @    #",
     "#########"]},
   { name:"Haul Road", par:7, rows:[
@@ -500,27 +504,6 @@ const LEVELS = [
     "#   o   #",
     "#########"],
     traffic:[{r:3,c:0,dir:1,len:9,mode:"wrap",every:1,at:0,offset:0,stage:4}]},
-  { name:"Wetland Edge", par:18, rows:[
-    "##########",
-    "#o ~~~~ o#",
-    "#  ~~~~  #",
-    "#  $  $  #",
-    "#   @    #",
-    "##########"]},
-  { name:"Rush Hour", par:22, rows:[
-    "##########",
-    "#@       #",
-    "#  $  $  #",
-    "=        =",
-    "#        #",
-    "=        =",
-    "#  o  o  #",
-    "##########"],
-    traffic:[
-      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4},
-      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:7,offset:0,stage:4},
-      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:0,offset:0,stage:4},
-      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:7,offset:0,stage:4}]},
   { name:"Detour", par:20, rows:[
     "##########",
     "#o  ~~   #",
@@ -543,9 +526,28 @@ const LEVELS = [
       {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:8,offset:0,stage:5},
       {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:0,offset:0,stage:5},
       {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:8,offset:0,stage:5}]},
-
-  /* ---- chapter three: gated roads and a clock that speeds up ---- */
-
+  { name:"Wetland Edge", par:18, rows:[
+    "##########",
+    "#o ~~~~ o#",
+    "#  ~~~~  #",
+    "#  $  $  #",
+    "#   @    #",
+    "##########"]},
+  { name:"Rush Hour", par:22, rows:[
+    "##########",
+    "#@       #",
+    "#  $  $  #",
+    "=        =",
+    "#        #",
+    "=        =",
+    "#  o  o  #",
+    "##########"],
+    traffic:[
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4},
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:7,offset:0,stage:4},
+      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:0,offset:0,stage:4},
+      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:7,offset:0,stage:4}]},
+/* ---- chapter three: gated roads and a clock that speeds up ---- */
   { name:"Gate Duty", par:8, rows:[
     "##########",
     "#@       #",
@@ -555,6 +557,27 @@ const LEVELS = [
     "#   o    #",
     "##########"],
     traffic:[{r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:5}]},
+  { name:"Marsh Crossing", par:23, rows:[
+    "###########",
+    "#@        #",
+    "#  ~~~~~  #",
+    "=         =",
+    "#  $   $  #",
+    "#         #",
+    "#o       o#",
+    "###########"],
+    traffic:[{r:3,c:0,dir:1,len:11,mode:"wrap",every:1,at:0,offset:0,stage:6}]},
+  { name:"Interchange", par:16, rows:[
+    "####=#####",
+    "#@       #",
+    "#  $  $  #",
+    "=        =",
+    "#        #",
+    "#  o  o  #",
+    "####=#####"],
+    traffic:[
+      {r:0,c:4,dir:2,len:7,mode:"wrap",every:1,at:0,offset:0,stage:5},
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4}]},
   { name:"Two Gates", par:20, rows:[
     "###########",
     "#@        #",
@@ -580,27 +603,6 @@ const LEVELS = [
     traffic:[
       {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:0,offset:0,stage:5},
       {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:0,offset:0,stage:5}]},
-  { name:"Interchange", par:16, rows:[
-    "####=#####",
-    "#@       #",
-    "#  $  $  #",
-    "=        =",
-    "#        #",
-    "#  o  o  #",
-    "####=#####"],
-    traffic:[
-      {r:0,c:4,dir:2,len:7,mode:"wrap",every:1,at:0,offset:0,stage:5},
-      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4}]},
-  { name:"Marsh Crossing", par:23, rows:[
-    "###########",
-    "#@        #",
-    "#  ~~~~~  #",
-    "=         =",
-    "#  $   $  #",
-    "#         #",
-    "#o       o#",
-    "###########"],
-    traffic:[{r:3,c:0,dir:1,len:11,mode:"wrap",every:1,at:0,offset:0,stage:6}]},
   { name:"Graveyard Shift", par:24, rows:[
     "###########",
     "#o       o#",
@@ -643,14 +645,15 @@ function escFor(def, diffKey){
    read this array, so there is a single source of truth. `.` means wait.
    Regenerate with:  py -3 tools/validate.py --emit  */
 const SOLUTIONS=[
-  "RRR","RLL","LULUR","ULDLURRDDLDRR","RRUL","DRRURDDULLLLLULDD","RUULDD",
-  "ULDDRRRUULURRDDDLDRLLLLLUUURUL","LLURULULURRRRRRDLDR",
-  "ULRRDDLLULUDDRRRRRRRUULURRDDD","RRRUULLLLLLDDDURRDDLLRRRRRRURUU",
+  "RRR","RLL","RURUL","RUULDD","RRUL","DRRURDDULLLLLULDD",
+  "ULDDRRRUULURRDDDLDRLLLLLUUURUL","ULDLURRDDLDRR",
+  "RRRUULLLLLLDDDURRDDLLRRRRRRURUU","LLURULULURRRRRRDLDR",
+  "ULRRDDLLULUDDRRRRRRRUULURRDDD",
   "URRUURUULDDDDLDRRRULDLUUUULURRDDLDDLLLLUURUULDDDDRDLLLURDRUUUURULL",
-  "LLURRRR","RRRRLDD","ULLDLUURDRRRRRDRUU","RRRRRRLDDDDULUUULLDDDD",
-  "UURDLDRRULLLLLDL.UUU","ULLLDLUUURDRRRRDRRDRUUU","RRRRLDDD",
-  "RRRRLDDDDUUUURRRDDDD","RRRDDDDRDLLUUUUURRRRRDDDD","RRRLDDDUUURRRDDD",
-  "RD.DRDDRDLLUURRRRRRURDD","UULLLDLUUURDRRRRDRRDRUUU"
+  "URRDRU","RRRRLDD","UURDLDRRULLLLLDL.UUU","ULLLDLUUURDRRRRDRRDRUUU",
+  "ULLDLUURDRRRRRDRUU","RRRRRRLDDDDULUUULLDDDD","RRRRLDDD",
+  "RD.DRDDRDLLUURRRRRRURDD","RRRLDDDUUURRRDDD","RRRRLDDDDUUUURRRDDDD",
+  "RRRDDDDRDLLUUUUURRRRRDDDD","UULLLDLUUURDRRRRDRRDRUUU"
 ];
 
 const WALL=0, GROUND=1, HOLE=2, MARSH=3, GATE=4;
@@ -658,7 +661,7 @@ const DIRS=[[-1,0],[0,1],[1,0],[0,-1]];   // up, right, down, left
 const WAIT=-1;
 const MOVES=[0,1,2,3,WAIT];
 const MOVECH={0:"U",1:"R",2:"D",3:"L","-1":"."};
-const SAVE_KEY="cutfill.v3";
+const SAVE_KEY="cutfill.v4";
 const START_HINTS=3;
 
 const $=s=>document.querySelector(s);
@@ -688,8 +691,14 @@ function load(){
 function save(){
   try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SV)); }catch(e){}
 }
-/** Where this site's best score lives. Random sites are throwaway: no slot. */
-const bestSlot = () => custom ? custom.key : idx;
+/**
+ * Where this site's score lives. Keyed by level *name*, not position, so
+ * reordering the campaign doesn't silently reattach everyone's stars to the
+ * wrong puzzles. Random sites are throwaway and get no slot at all.
+ * (tools/test.py enforces that names stay unique, which is what makes this
+ * safe as a key.)
+ */
+const bestSlot = () => custom ? custom.key : LEVELS[idx].name;
 const bestHere = () => { const k=bestSlot(); return k==null?undefined:best[diff][k]; };
 
 /* Stars are derived from your best move count, never stored separately —
@@ -702,7 +711,7 @@ function starsFor(moves,par){
   return 1;
 }
 const totalStars = () =>
-  LEVELS.reduce((n,L,i)=>n+starsFor(best[diff][i],L.par),0);
+  LEVELS.reduce((n,L)=>n+starsFor(best[diff][L.name],L.par),0);
 
 /* ---------------- level parsing ---------------- */
 function parse(def, diffKey){
@@ -1349,16 +1358,17 @@ function buildPicker(){
 }
 function renderPicker(){
   for(let i=0;i<LEVELS.length;i++){
-    const el=pickerEls[i], bb=best[diff][i], s=starsFor(bb,LEVELS[i].par);
+    const nm=LEVELS[i].name;
+    const el=pickerEls[i], bb=best[diff][nm], s=starsFor(bb,LEVELS[i].par);
     el.classList.toggle("cur",!custom&&i===idx);
     el.classList.toggle("done",bb!=null);
     el.classList.toggle("gold",s===3);
     el.querySelector(".n").textContent=i+1;
     el.querySelector("small").innerHTML=
-      STARS[s]+(SV.clean[diff][i]?" <span class='clean'>◆</span>":"");
-    el.title=LEVELS[i].name+" · par "+LEVELS[i].par+
+      STARS[s]+(SV.clean[diff][nm]?" <span class='clean'>◆</span>":"");
+    el.title=nm+" · par "+LEVELS[i].par+
              (bb!=null?" · best "+bb:" · unplayed")+
-             (SV.clean[diff][i]?" · unaided":"");
+             (SV.clean[diff][nm]?" · unaided":"");
   }
   $("#sStars").textContent="★ "+totalStars()+"/"+(LEVELS.length*3);
 }
@@ -1386,7 +1396,7 @@ function loadLevel(i){
   custom=null;
   idx=Math.max(0,Math.min(LEVELS.length-1,i));
   startLevel(LEVELS[idx],"Level "+(idx+1)+" — "+LEVELS[idx].name);
-  try{ localStorage.setItem(SAVE_KEY+".last",idx); }catch(e){}
+  try{ localStorage.setItem(SAVE_KEY+".last",LEVELS[idx].name); }catch(e){}
 }
 
 function loadCustom(def,label,key){
@@ -1615,8 +1625,9 @@ $("#diffTag").textContent=DIFFS[diff].name;
 document.querySelectorAll(".pick").forEach(b=>
   b.classList.toggle("on",b.dataset.diff===diff));
 buildPicker();
-const lastPlayed=parseInt(localStorage.getItem(SAVE_KEY+".last"),10);
-loadLevel(Number.isInteger(lastPlayed)?lastPlayed:0);
+const lastName=localStorage.getItem(SAVE_KEY+".last");
+const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
+loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
 if(!savedDiff) $("#diff").classList.add("on");   // first visit: pick a shift
 
 /* ============================================================
@@ -1752,15 +1763,24 @@ async function selfTest(){
   loadLevel(0); play(SOLUTIONS[0]);           // same site again
   ok("the same site cannot be farmed for hints", SV.hints===earnedOnce,
      "hints="+SV.hints);
-  ok("an unaided par run is recorded as clean", SV.clean[diff][0]===true);
+  ok("an unaided par run is recorded as clean",
+     SV.clean[diff][LEVELS[0].name]===true);
 
   loadLevel(1); play("R"); undo(); play(SOLUTIONS[1]);
-  ok("a run using undo is not clean", SV.clean[diff][1]!==true,
-     "clean="+SV.clean[diff][1]+" usedUndo="+usedUndo);
+  ok("a run using undo is not clean", SV.clean[diff][LEVELS[1].name]!==true,
+     "clean="+SV.clean[diff][LEVELS[1].name]+" usedUndo="+usedUndo);
 
   // undoing nothing is not assistance, so it must not spoil the run
   loadLevel(2); undo(); play(SOLUTIONS[2]);
-  ok("a no-op undo leaves the run clean", SV.clean[diff][2]===true);
+  ok("a no-op undo leaves the run clean",
+     SV.clean[diff][LEVELS[2].name]===true);
+
+  // scores must survive the campaign being reordered, which is the whole
+  // reason they are keyed by name rather than position
+  ok("scores are keyed by level name, not position",
+     best[diff][LEVELS[0].name]!=null &&
+     Object.keys(best[diff]).every(k=>isNaN(Number(k))),
+     "keys: "+Object.keys(best[diff]).join(", "));
 
   SV.hints=START_HINTS; SV.awarded={};
   SV.best={apprentice:{},operator:{},foreman:{}};
