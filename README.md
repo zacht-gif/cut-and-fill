@@ -97,6 +97,13 @@ level is proved solvable on all three rather than assumed safe on the easy one.
 
 On touch screens, swipe the board to drive, tap to wait, or use the on-screen pad.
 
+Everything not needed mid-move — level picker, random/daily buttons, legend,
+key list — lives in a drawer behind **Levels & Help**. It opens by default on a
+desktop and starts closed on a phone, where the whole game then fits in one
+screen with no scrolling. The board sizes itself by measuring what else is
+actually on the page rather than a hardcoded guess, so it adapts to the drawer,
+the ad slots, or any row added later.
+
 **Haptics** fire on the four moments that carry meaning — a blocked push, a load
 dropping in, a run ending, a site finished — and stay silent on ordinary moves,
 since buzzing every keystroke is irritating and drains the battery. Toggle it

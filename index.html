@@ -223,6 +223,29 @@ body.ads .adslot{display:flex}
   body.ads{padding-bottom:58px}
 }
 
+/* Everything that isn't needed mid-move lives in the drawer: open by default
+   on a desktop, closed on a phone, where the board should be the first thing
+   you see rather than something you scroll to. */
+#drawer{display:flex;flex-direction:column;align-items:center;gap:14px;
+  width:100%;max-width:820px}
+#drawer.closed{display:none}
+#drawerToggle{font-size:11px}
+
+@media (max-width:560px){
+  /* one compact scrolling row instead of six boxes wrapping to three lines */
+  .stats{flex-wrap:nowrap;overflow-x:auto;gap:6px;
+    scrollbar-width:none;-ms-overflow-style:none}
+  .stats::-webkit-scrollbar{display:none}
+  .stat{min-width:62px;padding:4px 8px}
+  .stat b{font-size:14px}
+  .stat i{font-size:8px;letter-spacing:.1em}
+  #objectives{gap:10px;font-size:10px}
+  h1{font-size:17px}
+  .row{gap:6px}
+  button{padding:7px 11px}
+  #pad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,40px)}
+}
+
 #objectives{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
   max-width:820px;font-size:11px;color:var(--ink-dim);letter-spacing:.06em}
 .ob{display:flex;align-items:center;gap:6px}
@@ -332,17 +355,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <button id="bUndo">↶ Undo</button>
   <button id="bReset">⟳ Restart</button>
   <button id="bHint">? Hint</button>
-  <button id="bPrev">‹ Prev</button>
-  <button id="bNext">Next ›</button>
 </div>
-
-<div class="row">
-  <button id="bDaily">📅 Daily Site</button>
-  <button data-tier="easy">🎲 Random: Easy</button>
-  <button data-tier="medium">Medium</button>
-  <button data-tier="hard">Hard</button>
-</div>
-<div id="gen"></div>
 
 <div id="pad">
   <span class="sp"></span><button data-d="0">▲</button><span class="sp"></span>
@@ -350,22 +363,37 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <span class="sp"></span><button data-d="2">▼</button><span class="sp"></span>
 </div>
 
-<div id="levels"></div>
+<div id="gen"></div>
 
-<div class="legend">
-  <span><i class="sw h"></i>hole — fill it</span>
-  <span><i class="sw d"></i>dirt — consumed on use</span>
-  <span><i class="sw m"></i>soft ground — sinks you, swallows dirt</span>
-  <span><i class="sw v"></i>traffic — don't get hit, don't block it</span>
-  <span><i class="sw g"></i>gate — traffic only, keep the dozer out</span>
+<button id="drawerToggle">☰ Levels &amp; Help</button>
+
+<div id="drawer">
+  <div class="row">
+    <button id="bPrev">‹ Prev</button>
+    <button id="bNext">Next ›</button>
+    <button id="bDaily">📅 Daily Site</button>
+    <button data-tier="easy">🎲 Easy</button>
+    <button data-tier="medium">Medium</button>
+    <button data-tier="hard">Hard</button>
+  </div>
+
+  <div id="levels"></div>
+
+  <div class="legend">
+    <span><i class="sw h"></i>hole — fill it</span>
+    <span><i class="sw d"></i>dirt — consumed on use</span>
+    <span><i class="sw m"></i>soft ground — sinks you, swallows dirt</span>
+    <span><i class="sw v"></i>traffic — don't get hit, don't block it</span>
+    <span><i class="sw g"></i>gate — traffic only, keep the dozer out</span>
+  </div>
+
+  <p class="hint">
+    <kbd>↑↓←→</kbd> or <kbd>WASD</kbd> drive &nbsp;·&nbsp;
+    <kbd>Space</kbd> wait a turn &nbsp;·&nbsp;
+    <kbd>Z</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> restart &nbsp;·&nbsp; swipe on touch<br>
+    Traffic moves one step for every turn you take. Nothing moves while you think.
+  </p>
 </div>
-
-<p class="hint">
-  <kbd>↑↓←→</kbd> or <kbd>WASD</kbd> drive &nbsp;·&nbsp;
-  <kbd>Space</kbd> wait a turn &nbsp;·&nbsp;
-  <kbd>Z</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> restart &nbsp;·&nbsp; swipe on touch<br>
-  Traffic moves one step for every turn you take. Nothing moves while you think.
-</p>
 
 <div class="adslot" id="adBottom"><span>advertisement</span></div>
 
@@ -1313,10 +1341,19 @@ function fitCell(){
               +px(stageEl,"paddingLeft","paddingRight",
                           "borderLeftWidth","borderRightWidth");
   const availW=Math.min(document.documentElement.clientWidth-chrome, 860);
-  // whatever the ad slots reserve is height the board cannot have
-  const adH=[...document.querySelectorAll(".adslot")]
-    .reduce((n,el)=>n+el.getBoundingClientRect().height,0);
-  const availH=Math.max(180, window.innerHeight-420-adH);
+  // Measure everything else on the page rather than guessing a constant, so
+  // the board adapts to the drawer opening, ad slots appearing, or any row
+  // added later. Overlays are excluded — they float above, costing no height.
+  let used=px(document.body,"paddingTop","paddingBottom");
+  for(const el of document.body.children){
+    if(el===stageEl || (el.classList&&el.classList.contains("overlay"))) continue;
+    // anchored elements are already paid for by the body's padding; counting
+    // the rect as well would reserve a 50px banner twice over
+    if(getComputedStyle(el).position==="fixed") continue;
+    const h=el.getBoundingClientRect().height;
+    if(h) used+=h+14;                       // + the body's flex gap
+  }
+  const availH=Math.max(160, window.innerHeight-used-8);
   const byW=(availW-(lv.w-1)*gap)/lv.w;
   const byH=(availH-(lv.h-1)*gap)/lv.h;
   boardEl.style.setProperty("--cell",
@@ -1727,10 +1764,19 @@ document.querySelectorAll(".pick").forEach(b=>
 if(ADS.enabled || /[?&]ads=1/.test(typeof location!=="undefined"&&location.search||""))
   document.body.classList.add("ads");
 
+const drawerEl=$("#drawer");
+function setDrawer(open){
+  drawerEl.classList.toggle("closed",!open);
+  $("#drawerToggle").textContent=open?"▲ Hide levels":"☰ Levels & Help";
+  if(lv){ fitCell(); render(); }
+}
+$("#drawerToggle").onclick=()=>setDrawer(drawerEl.classList.contains("closed"));
+
 buildPicker();
 const lastName=localStorage.getItem(SAVE_KEY+".last");
 const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
 loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
+setDrawer(window.innerWidth>=760);         // phones start with the board in view
 if(!savedDiff) $("#diff").classList.add("on");   // first visit: pick a shift
 
 /* ============================================================
