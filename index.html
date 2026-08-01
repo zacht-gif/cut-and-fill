@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  Cut & Fill
+  Copyright (c) 2026 Zach T. All rights reserved.
+
+  Proprietary. Not licensed for copying, redistribution, modification, reskinning,
+  or reuse of its level designs or source. See LICENSE.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -292,6 +299,23 @@ body.ads .adslot{display:flex}
   text-shadow:0 0 16px rgba(255,174,26,.55);animation:pop .35s ease-out}
 .togo{display:inline-block;margin-top:6px;color:var(--accent);opacity:.85}
 
+/* ---- title screen ---- */
+.titlecard{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:30px 34px 26px;text-align:center;max-width:420px;width:100%;
+  box-shadow:0 30px 90px -30px #000;animation:pop .3s ease-out}
+.tlogo{font-size:clamp(26px,8vw,38px);letter-spacing:.2em;font-weight:700;
+  color:#eaf4f9;text-transform:uppercase;line-height:1.1}
+.tlogo span{color:var(--dozer)}
+.tline{color:var(--ink-dim);font-size:11.5px;line-height:1.7;margin:14px 0 18px}
+.tfoot{margin-top:16px;font-size:9px;letter-spacing:.18em;color:#31485a;
+  text-transform:uppercase}
+/* width:max-content matters — the entities are absolutely positioned from the
+   container's left edge, so any centring of the grid tracks inside a wider box
+   would slide them out of alignment with the cells. */
+#titleStrip{position:relative;display:grid;--cell:34px;width:max-content;
+  grid-template-columns:repeat(7,var(--cell));grid-auto-rows:var(--cell);
+  gap:2px;margin:20px auto 4px}
+
 #diffCard{max-width:440px;text-align:left}
 #diffCard h2{text-align:center}
 #diffCard>p{text-align:center}
@@ -318,6 +342,15 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 </style>
 </head>
 <body>
+
+<div class="overlay on" id="title"><div class="titlecard">
+  <div class="tlogo">CUT &amp; <span>FILL</span></div>
+  <div id="titleStrip"></div>
+  <p class="tline">Push dirt into every hole to level the site.<br>
+     Dirt is consumed when it drops in — waste a load and you may strand yourself.</p>
+  <button class="primary" id="tStart">Start</button>
+  <div class="tfoot">© 2026 · all rights reserved</div>
+</div></div>
 
 <div class="adslot" id="adTop"><span>advertisement</span></div>
 
@@ -1748,6 +1781,7 @@ const KEYS={ArrowUp:0,w:0,W:0,ArrowRight:1,d:1,D:1,
             ArrowDown:2,s:2,S:2,ArrowLeft:3,a:3,A:3};
 addEventListener("keydown",e=>{
   if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if($("#title").classList.contains("on")){ e.preventDefault(); closeTitle(); return; }
   if($("#diff").classList.contains("on")) return;
   if(e.key in KEYS){ e.preventDefault(); doMove(KEYS[e.key]); return; }
   if(e.key===" "||e.key==="."){ e.preventDefault(); doMove(WAIT); }
@@ -1858,6 +1892,63 @@ document.querySelectorAll(".pick").forEach(b=>
 if(ADS.enabled || /[?&]ads=1/.test(typeof location!=="undefined"&&location.search||""))
   document.body.classList.add("ads");
 
+/* ---------------- title screen ----------------
+   A scripted rerun of the first level, built from the same cell and entity
+   classes the board uses, so the front door is made of the actual game
+   rather than a picture of it. */
+let titleTimer=null;
+function buildTitle(){
+  const strip=$("#titleStrip");
+  if(!strip||!strip.appendChild) return;
+  strip.innerHTML="";
+  ["wall","ground","ground","ground","ground","hole","wall"].forEach(k=>{
+    const d=document.createElement("div");
+    d.className="c "+k;
+    d.innerHTML='<i class="mk"></i>';
+    strip.appendChild(d);
+  });
+  const pile=document.createElement("div");
+  pile.className="ent pile";
+  pile.innerHTML='<div class="body"></div>';
+  strip.appendChild(pile);
+  const doz=document.createElement("div");
+  doz.className="ent dozer";
+  doz.innerHTML='<div class="rot" style="rotate:90deg"><div class="hull"></div>'+
+                '<div class="cab"></div><div class="blade"></div></div>';
+  strip.appendChild(doz);
+}
+function runTitle(){
+  const strip=$("#titleStrip");
+  const cells=strip.querySelectorAll?[...strip.querySelectorAll(".c")]:[];
+  if(cells.length<7) return;
+  const pile=strip.querySelector(".pile"), doz=strip.querySelector(".dozer");
+  const X=i=>"translate("+(i*36)+"px,0)";
+  const frames=[
+    ()=>{ cells[5].classList.remove("filled"); pile.classList.remove("gone");
+          pile.style.transform=X(3); doz.style.transform=X(1); },
+    ()=>doz.style.transform=X(2),
+    ()=>{ doz.style.transform=X(3); pile.style.transform=X(4); },
+    ()=>{ doz.style.transform=X(4); pile.style.transform=X(5);
+          setTimeout(()=>{ pile.classList.add("gone");
+                           cells[5].classList.add("filled"); },170); },
+    ()=>{}, ()=>{}
+  ];
+  let step=0;
+  frames[0]();
+  clearInterval(titleTimer);
+  titleTimer=setInterval(()=>{ step=(step+1)%frames.length; frames[step](); },620);
+}
+function closeTitle(){
+  const t=$("#title");
+  if(!t.classList.contains("on")) return;
+  clearInterval(titleTimer); titleTimer=null;
+  t.classList.remove("on");
+  if(!localStorage.getItem(SAVE_KEY+".diff")) $("#diff").classList.add("on");
+  if(lv){ fitCell(); render(); }
+}
+$("#tStart").onclick=closeTitle;
+$("#title").onclick=closeTitle;
+
 const drawerEl=$("#drawer");
 function setDrawer(open){
   drawerEl.classList.toggle("closed",!open);
@@ -1871,7 +1962,8 @@ const lastName=localStorage.getItem(SAVE_KEY+".last");
 const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
 loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
 setDrawer(window.innerWidth>=760);         // phones start with the board in view
-if(!savedDiff) $("#diff").classList.add("on");   // first visit: pick a shift
+buildTitle();
+runTitle();                                // the shift picker follows the title
 
 /* ============================================================
    Self test
@@ -2096,6 +2188,8 @@ function renderSelfTest(R){
 }
 
 if(typeof location!=="undefined" && /[?&]test=1/.test(location.search||"")){
+  clearInterval(titleTimer);
+  $("#title").classList.remove("on");
   $("#diff").classList.remove("on");
   setTimeout(()=>selfTest().then(renderSelfTest),0);
 }

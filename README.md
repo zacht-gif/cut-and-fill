@@ -1,5 +1,10 @@
 # Cut & Fill
 
+> **Proprietary — all rights reserved.** Not licensed for copying,
+> redistribution, modification, reskinning, or reuse of its level designs or
+> source. See [LICENSE](LICENSE), and read the note at the bottom of it about
+> what a licence can and cannot protect for a browser game.
+
 A grading puzzle. You drive a bulldozer around a site grid, pushing dirt into
 holes until the whole site is level — without sinking it, getting run over, or
 causing a wreck.
@@ -474,6 +479,7 @@ their centerlines, so the whole board is legible with any form of colour vision.
 ```
 cut-and-fill/
   index.html            the whole game — markup, styles, logic, self test
+  LICENSE               proprietary, all rights reserved
   tools/test.py         full regression suite (runs both halves)
   tools/test.mjs        headless runner for the in-page suite
   tools/validate.py     level solver / par checker / --emit
