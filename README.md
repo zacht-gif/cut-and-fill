@@ -104,6 +104,29 @@ screen with no scrolling. The board sizes itself by measuring what else is
 actually on the page rather than a hardcoded guess, so it adapts to the drawer,
 the ad slots, or any row added later.
 
+**Sound** is synthesised with WebAudio rather than sampled — no asset files, so
+the game stays a single self-contained document that runs offline and hosts
+anywhere, with no licence attached to anything. Seven cues, each matched to what
+the turn actually did:
+
+| Cue | When |
+|---|---|
+| *(silence)* | driving with nothing to push |
+| push | shifting a load |
+| blocked | a push that couldn't happen |
+| fill | a load dropping into a hole |
+| swallow | soft ground taking a load |
+| fail | sinking, being run over, a wreck |
+| win | the site finished |
+
+Toggle from the header. Browsers won't start an `AudioContext` without a user
+gesture, so it's created lazily on first input.
+
+To swap in samples later — [kenney.nl](https://kenney.nl) is the best source,
+since his packs are CC0 and carry no attribution obligation — replace the body
+of `playSound()` and nothing else. Note that embedding audio would end the
+zero-network-requests property, same tradeoff as the ad slots.
+
 **Haptics** fire on the four moments that carry meaning — a blocked push, a load
 dropping in, a run ending, a site finished — and stay silent on ordinary moves,
 since buzzing every keystroke is irritating and drains the battery. Toggle it
