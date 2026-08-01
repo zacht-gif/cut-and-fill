@@ -201,6 +201,28 @@ button.primary:hover{color:#241800;filter:brightness(1.08)}
 .lv small{display:block;font-size:9px;opacity:.85;letter-spacing:-.5px}
 #sStars{color:var(--dozer);letter-spacing:.1em}
 
+/* Ad slots. Hidden until a network is wired up, so development isn't cluttered
+   with dead boxes. When shown they reserve exact IAB dimensions up front — an
+   ad that loads late and pushes the board down mid-move would make the player
+   mis-tap, which matters more in a game than on a page you only read. */
+.adslot{display:none;flex:0 0 auto;align-items:center;justify-content:center;
+  max-width:100%;overflow:hidden;background:#0b141a;
+  border:1px dashed var(--line);border-radius:6px;
+  color:#2f4757;font-size:9px;letter-spacing:.3em;text-transform:uppercase}
+body.ads .adslot{display:flex}
+#adTop,#adBottom{width:728px;height:90px}                    /* IAB leaderboard */
+@media (max-width:800px){
+  #adTop,#adBottom{width:320px;height:50px}                  /* mobile banner */
+}
+/* On a phone the bottom unit anchors instead of eating scroll height, and the
+   body reserves the same height so nothing hides behind it. */
+@media (max-width:560px){
+  body.ads #adBottom{position:fixed;left:0;right:0;bottom:0;width:100%;
+    border-radius:0;border:0;border-top:1px solid var(--line);
+    background:var(--panel);z-index:15}
+  body.ads{padding-bottom:58px}
+}
+
 #objectives{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
   max-width:820px;font-size:11px;color:var(--ink-dim);letter-spacing:.06em}
 .ob{display:flex;align-items:center;gap:6px}
@@ -274,6 +296,8 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 </head>
 <body>
 
+<div class="adslot" id="adTop"><span>advertisement</span></div>
+
 <header>
   <h1>Cut &amp; <span>Fill</span></h1>
   <div class="sub">
@@ -342,6 +366,8 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <kbd>Z</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> restart &nbsp;·&nbsp; swipe on touch<br>
   Traffic moves one step for every turn you take. Nothing moves while you think.
 </p>
+
+<div class="adslot" id="adBottom"><span>advertisement</span></div>
 
 <div class="overlay" id="win"><div class="card">
   <h2 id="wTitle">Site Graded</h2>
@@ -680,6 +706,21 @@ const MOVES=[0,1,2,3,WAIT];
 const MOVECH={0:"U",1:"R",2:"D",3:"L","-1":"."};
 const SAVE_KEY="cutfill.v4";
 const START_HINTS=3;
+
+/**
+ * Ad slots: #adTop and #adBottom, sized to IAB leaderboard (728x90) on
+ * desktop and mobile banner (320x50) below 800px. Flip `enabled` once a
+ * network is wired up, or append ?ads=1 to preview the reserved space.
+ *
+ * The space is reserved before anything loads, so a slow ad can never push
+ * the board mid-move. fitCell() subtracts whatever the slots occupy, so the
+ * board shrinks to fit rather than overflowing.
+ *
+ * Worth knowing before switching this on: the game currently makes zero
+ * network requests, which is what lets it run offline, host anywhere, and
+ * carry no consent obligations. An ad network's script ends all three.
+ */
+const ADS={enabled:false};
 
 const $=s=>document.querySelector(s);
 const boardEl=$("#board"), stageEl=$("#stage");
@@ -1272,7 +1313,10 @@ function fitCell(){
               +px(stageEl,"paddingLeft","paddingRight",
                           "borderLeftWidth","borderRightWidth");
   const availW=Math.min(document.documentElement.clientWidth-chrome, 860);
-  const availH=Math.max(200, window.innerHeight-420);
+  // whatever the ad slots reserve is height the board cannot have
+  const adH=[...document.querySelectorAll(".adslot")]
+    .reduce((n,el)=>n+el.getBoundingClientRect().height,0);
+  const availH=Math.max(180, window.innerHeight-420-adH);
   const byW=(availW-(lv.w-1)*gap)/lv.w;
   const byH=(availH-(lv.h-1)*gap)/lv.h;
   boardEl.style.setProperty("--cell",
@@ -1680,6 +1724,9 @@ diff=DIFFS[savedDiff]?savedDiff:"operator";
 $("#diffTag").textContent=DIFFS[diff].name;
 document.querySelectorAll(".pick").forEach(b=>
   b.classList.toggle("on",b.dataset.diff===diff));
+if(ADS.enabled || /[?&]ads=1/.test(typeof location!=="undefined"&&location.search||""))
+  document.body.classList.add("ads");
+
 buildPicker();
 const lastName=localStorage.getItem(SAVE_KEY+".last");
 const resumeAt=LEVELS.findIndex(L=>L.name===lastName);

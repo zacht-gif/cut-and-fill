@@ -209,6 +209,32 @@ the site can't be finished. The check is deliberately conservative — it ignore
 traffic and the dozer's position, so it only fires when the dirt is *provably*
 stranded and will never nag you about a position that's still winnable.
 
+## Ad slots
+
+Two are reserved: `#adTop` and `#adBottom`, at IAB leaderboard (728×90) on
+desktop and mobile banner (320×50) below 800px. On phones the bottom unit
+anchors to the viewport instead of eating scroll height, and the body reserves
+the same height so nothing hides behind it.
+
+They're hidden until you switch them on:
+
+```js
+const ADS = { enabled: false };     // near the top of the <script>
+```
+
+Or append `?ads=1` to preview the reserved space without committing to it.
+
+The space is reserved *before* anything loads, and `fitCell()` subtracts
+whatever the slots occupy so the board shrinks to fit rather than overflowing.
+That matters more here than on a page you only read: an ad arriving late and
+shoving the board down mid-move makes the player mis-tap.
+
+**Before switching this on**, know what it costs. The game currently makes zero
+network requests, which is what lets it run offline, host anywhere including
+under a strict CSP, and carry no cookie-consent obligations. An ad network's
+script ends all three at once. Reserving the space costs nothing; loading a
+network is the decision.
+
 ## Adding a level
 
 Levels live in the `LEVELS` array near the top of the `<script>` in
