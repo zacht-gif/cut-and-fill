@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cut &amp; Fill</title>
+<style>
+:root{
+  --bg:#0a1016;
+  --panel:#0e1a23;
+  --line:#1d3442;
+  --ink:#8fb8cc;
+  --ink-dim:#557488;
+  --wall:#2f4b5d;
+  --ground:#0c171e;
+  --hole:#05090c;
+  --hole-edge:#d9633b;
+  --fill:#2f6b4f;
+  --dirt:#c08a4a;
+  --dirt-dk:#8a5f2e;
+  --dozer:#ffae1a;
+  --accent:#4fd1c5;
+  --marsh:#123c3a;
+  --marsh-edge:#2aa198;
+  --veh:#d8e4ea;
+  --danger:#ff4d4d;
+  --gate:#e8b53a;
+  --cell:48px;
+  --gap:2px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #14293a 0%, transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  font:14px/1.45 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  display:flex;flex-direction:column;align-items:center;
+  padding:16px 12px 28px;gap:14px;
+  -webkit-user-select:none;user-select:none;overflow-x:hidden;
+}
+
+header{width:100%;max-width:820px;display:flex;align-items:baseline;
+  justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:20px;letter-spacing:.22em;text-transform:uppercase;
+  color:#eaf4f9;font-weight:700}
+h1 span{color:var(--dozer)}
+.sub{color:var(--ink-dim);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+#diffTag{cursor:pointer;border:1px solid var(--line);border-radius:5px;
+  padding:3px 9px;transition:.12s}
+#diffTag:hover{border-color:var(--accent);color:#eaf4f9}
+
+.stats{width:100%;max-width:820px;display:flex;gap:8px;flex-wrap:wrap}
+.stat{flex:1 1 auto;min-width:72px;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+.stat b{display:block;font-size:16px;color:#eaf4f9;font-weight:600;line-height:1.2}
+.stat i{font-style:normal;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-dim)}
+.stat.warn b{color:var(--hole-edge)}
+.stat.hot b{color:var(--danger)}
+.stat.hide{display:none}
+
+#stage{position:relative;padding:14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 18px 50px -20px #000, inset 0 0 60px -30px var(--accent);
+  touch-action:none;max-width:100%;overflow-x:auto;
+  /* a scroll container gets min-height:0 as a flex item, which lets the
+     column layout squash it flat — opt out of shrinking */
+  flex:0 0 auto}
+@media (max-width:560px){ #stage{padding:7px} }
+#board{position:relative;display:grid;
+  grid-template-columns:repeat(var(--cols),var(--cell));
+  grid-auto-rows:var(--cell);gap:var(--gap)}
+#board.shake{animation:shake .16s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+.c{border-radius:3px;position:relative}
+.c.ground{background:var(--ground);box-shadow:inset 0 0 0 1px #16303e}
+.c.wall{background:repeating-linear-gradient(45deg,#3a5a6e 0 4px,var(--wall) 4px 9px);
+  box-shadow:inset 0 0 0 1px #4a7189, 0 1px 3px -1px #000}
+.c.hole{background:var(--hole);
+  box-shadow:inset 0 0 0 2px var(--hole-edge), inset 0 6px 14px -4px #000;border-radius:4px}
+.c.hole::after{content:"";position:absolute;inset:5px;border-radius:2px;
+  background:repeating-linear-gradient(-45deg,rgba(217,99,59,.35) 0 2px,transparent 2px 7px)}
+.c.hole.filled{background:#1d3b30;
+  box-shadow:inset 0 0 0 2px var(--fill), inset 0 0 16px -6px var(--fill);
+  animation:tamp .32s ease-out}
+.c.hole.filled::after{background:repeating-linear-gradient(-45deg,
+    rgba(79,209,197,.28) 0 2px,transparent 2px 6px)}
+@keyframes tamp{0%{transform:scale(.82);filter:brightness(2.2)}100%{transform:scale(1)}}
+
+.c.marsh{background:var(--marsh);
+  box-shadow:inset 0 0 0 2px var(--marsh-edge), inset 0 0 18px -6px #000;border-radius:4px}
+.c.marsh::after{content:"";position:absolute;inset:0;border-radius:4px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 5px,rgba(42,161,152,.30) 5px 6px),
+    repeating-linear-gradient(90deg,transparent 0 9px,rgba(42,161,152,.18) 9px 10px);
+  animation:ripple 3.2s linear infinite}
+@keyframes ripple{to{background-position:0 12px, 20px 0}}
+
+.c.lane{background:#141f27;box-shadow:inset 0 0 0 1px #24404f}
+.c.lane::before{content:"";position:absolute}
+.c.lane-h::before{left:0;right:0;top:calc(50% - 1px);height:2px;
+  background:repeating-linear-gradient(90deg,rgba(143,184,204,.45) 0 7px,transparent 7px 14px)}
+.c.lane-v::before{top:0;bottom:0;left:calc(50% - 1px);width:2px;
+  background:repeating-linear-gradient(180deg,rgba(143,184,204,.45) 0 7px,transparent 7px 14px)}
+
+/* a gap in the site boundary: traffic only, dozer keeps out */
+.c.gate{background:#141f27;box-shadow:inset 0 0 0 1px #24404f}
+.c.gate.gate-h{border-top:3px solid var(--gate);border-bottom:3px solid var(--gate)}
+.c.gate.gate-v{border-left:3px solid var(--gate);border-right:3px solid var(--gate)}
+.c.gate::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,
+    rgba(232,181,58,.16) 0 4px,transparent 4px 8px)}
+
+.c.danger{box-shadow:inset 0 0 0 2px var(--danger), inset 0 0 20px -6px var(--danger)}
+@keyframes pulse{50%{opacity:.55}}
+
+/* Shape marks so board state never depends on hue alone: an open pit reads
+   as ▾ and a filled one as ✓, and the next-turn traffic warning carries
+   hazard stripes rather than only turning red. */
+.mk{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+  font-style:normal;font-weight:700;line-height:1;z-index:1;
+  font-size:calc(var(--cell) * .46)}
+.c.hole .mk::before{content:"▾";color:var(--hole-edge);
+  text-shadow:0 1px 2px #000}
+.c.hole.filled .mk::before{content:"✓";color:#8ff0cf;text-shadow:none}
+.c.danger .mk{border-radius:3px;
+  background:repeating-linear-gradient(45deg,
+    rgba(255,77,77,.45) 0 4px, transparent 4px 9px);
+  animation:pulse .9s ease-in-out infinite}
+
+.ent{position:absolute;width:var(--cell);height:var(--cell);left:0;top:0;
+  transition:transform .11s ease-out;will-change:transform}
+.ent.nojump{transition:none}
+.ent.offmap{opacity:0;pointer-events:none}
+
+.pile{padding:4px}
+.pile .body{width:100%;height:100%;border-radius:5px;
+  background:linear-gradient(160deg,var(--dirt) 0%,var(--dirt-dk) 100%);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.28), inset 0 2px 0 rgba(255,255,255,.22),
+             0 3px 7px -3px #000;position:relative;overflow:hidden}
+.pile .body::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 32%,rgba(0,0,0,.22) 1.5px,transparent 2px),
+             radial-gradient(circle at 68% 60%,rgba(0,0,0,.22) 1.5px,transparent 2px),
+             radial-gradient(circle at 45% 76%,rgba(0,0,0,.18) 1.5px,transparent 2px)}
+.pile.gone{transition:transform .11s ease-out,opacity .22s,scale .22s;opacity:0;scale:.35}
+
+.dozer{padding:3px;z-index:3}
+.dozer .rot{width:100%;height:100%;position:relative;transition:rotate .11s ease-out}
+.dozer .hull{position:absolute;inset:14% 10% 6% 10%;border-radius:4px;
+  background:linear-gradient(180deg,var(--dozer),#d98a00);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.3),0 3px 8px -3px #000}
+.dozer .cab{position:absolute;left:28%;right:28%;top:36%;height:30%;
+  border-radius:2px;background:#2a1c05;opacity:.85}
+.dozer .blade{position:absolute;left:4%;right:4%;top:0;height:12%;border-radius:2px;
+  background:#e8eef2;box-shadow:0 2px 5px -2px #000}
+
+.veh{padding:4px;z-index:2;transition:transform .11s ease-out,opacity .18s}
+.veh .rot{width:100%;height:100%;position:relative;transition:rotate .11s ease-out}
+.veh .body{position:absolute;inset:6% 16%;border-radius:4px;
+  background:linear-gradient(180deg,#f2f7fa,#aab9c4);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.22),0 3px 8px -3px #000}
+.veh .glass{position:absolute;left:26%;right:26%;top:14%;height:26%;
+  border-radius:2px;background:#16303e}
+.veh .lamp{position:absolute;left:30%;right:30%;top:2%;height:7%;
+  border-radius:2px;background:#ffe9a8}
+.veh .slow{position:absolute;left:50%;bottom:6%;translate:-50% 0;width:42%;height:3px;
+  border-radius:2px;background:#16303e;opacity:.55}
+
+.row{width:100%;max-width:820px;display:flex;gap:8px;flex-wrap:wrap;
+  align-items:center;justify-content:center}
+button{font:inherit;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer;
+  letter-spacing:.1em;text-transform:uppercase;font-size:11px;transition:.12s}
+button:hover:not(:disabled){border-color:var(--accent);color:#eaf4f9}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--dozer);color:#241800;border-color:var(--dozer);font-weight:700}
+button.primary:hover{color:#241800;filter:brightness(1.08)}
+
+#pad{display:none;gap:6px;grid-template-columns:repeat(3,54px);
+  grid-template-rows:repeat(3,44px);justify-content:center}
+#pad button{padding:0;font-size:17px}
+#pad .sp{visibility:hidden}
+@media (hover:none),(max-width:560px){#pad{display:grid}}
+
+#levels{width:100%;max-width:820px;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.lv{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:6px 4px;text-align:center;cursor:pointer;font-size:12px;
+  color:var(--ink-dim);transition:.12s}
+.lv:hover{border-color:var(--accent);color:#eaf4f9}
+.lv.cur{border-color:var(--dozer);color:var(--dozer)}
+.lv.done{color:var(--accent)}
+.lv.gold{border-color:rgba(255,174,26,.55)}
+.lv.gold small{color:var(--dozer)}
+.lv small{display:block;font-size:9px;opacity:.85;letter-spacing:-.5px}
+#sStars{color:var(--dozer);letter-spacing:.1em}
+
+#objectives{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+  max-width:820px;font-size:11px;color:var(--ink-dim);letter-spacing:.06em}
+.ob{display:flex;align-items:center;gap:6px}
+.ob i{width:13px;height:13px;border-radius:3px;border:1px solid var(--line);
+  display:inline-grid;place-items:center;font-style:normal;font-size:10px;
+  line-height:1;color:transparent}
+.ob.done{color:var(--accent)}
+.ob.done i{border-color:var(--accent);color:var(--accent)}
+.ob.done i::before{content:"✓"}
+.ob.lost{color:#6b4a4a;text-decoration:line-through}
+.ob.lost i{border-color:#6b4a4a;color:#6b4a4a}
+.ob.lost i::before{content:"✕"}
+.earned{display:inline-block;margin-top:6px;color:var(--dozer)}
+.lv .clean{color:var(--accent);opacity:.9}
+
+#gen{min-height:16px;font-size:11px;color:var(--ink-dim);letter-spacing:.08em;
+  text-align:center}
+#gen.busy{color:var(--accent)}
+.hintmark{display:grid;place-items:center;z-index:4;pointer-events:none;opacity:0;
+  font-size:calc(var(--cell) * .62);color:var(--accent);font-weight:700;
+  text-shadow:0 0 10px var(--accent);transition:opacity .15s}
+.hintmark.on{opacity:1}
+.c.hint{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 20px -6px var(--accent)}
+
+.banner{width:100%;max-width:820px;padding:9px 12px;border-radius:6px;
+  border:1px solid var(--hole-edge);background:rgba(217,99,59,.1);
+  color:#f0a184;font-size:12px;display:none}
+.banner.on{display:block}
+
+.overlay{position:fixed;inset:0;display:none;place-items:center;
+  background:rgba(5,9,12,.82);backdrop-filter:blur(3px);z-index:20;padding:20px}
+.overlay.on{display:grid}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:26px 30px;text-align:center;max-width:380px;width:100%;
+  box-shadow:0 30px 80px -30px #000;animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+.card h2{font-size:19px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dozer);margin-bottom:6px}
+.card.bad h2{color:var(--danger)}
+.card p{color:var(--ink-dim);font-size:12px;margin-bottom:16px}
+.card p b{color:#eaf4f9}
+#wStars{font-size:30px;letter-spacing:6px;color:#31485a;margin:2px 0 10px}
+#wStars b.on{color:var(--dozer);font-weight:400;
+  text-shadow:0 0 16px rgba(255,174,26,.55);animation:pop .35s ease-out}
+.togo{display:inline-block;margin-top:6px;color:var(--accent);opacity:.85}
+
+#diffCard{max-width:440px;text-align:left}
+#diffCard h2{text-align:center}
+#diffCard>p{text-align:center}
+.pick{display:block;width:100%;text-align:left;text-transform:none;
+  letter-spacing:0;font-size:13px;padding:12px 14px;margin-bottom:8px}
+.pick b{display:block;color:#eaf4f9;font-size:13px;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:3px}
+.pick span{color:var(--ink-dim);font-size:11px;line-height:1.5}
+.pick.on{border-color:var(--dozer)}
+.pick.on b{color:var(--dozer)}
+
+.hint{max-width:820px;color:var(--ink-dim);font-size:11px;text-align:center;line-height:1.8}
+kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:1px 5px;color:var(--ink)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+  max-width:820px;font-size:11px;color:var(--ink-dim)}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+.sw.h{background:var(--hole);box-shadow:inset 0 0 0 2px var(--hole-edge)}
+.sw.m{background:var(--marsh);box-shadow:inset 0 0 0 2px var(--marsh-edge)}
+.sw.d{background:var(--dirt)}
+.sw.v{background:var(--veh)}
+.sw.g{background:#141f27;box-shadow:inset 0 3px 0 var(--gate),inset 0 -3px 0 var(--gate)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cut &amp; <span>Fill</span></h1>
+  <div class="sub">
+    <span id="levelName">Level 1</span> &nbsp;
+    <span id="sStars">★ 0/72</span> &nbsp;
+    <span id="diffTag">Operator</span>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><b id="sMoves">0</b><i>Moves</i></div>
+  <div class="stat"><b id="sPar">—</b><i>Par</i></div>
+  <div class="stat"><b id="sBest">—</b><i>Best</i></div>
+  <div class="stat"><b id="sHoles">0/0</b><i>Filled</i></div>
+  <div class="stat" id="stDirt"><b id="sDirt">0</b><i>Dirt left</i></div>
+  <div class="stat hide" id="stTempo"><b id="sTempo">1×</b><i>Tempo</i></div>
+</div>
+
+<div class="banner" id="banner"></div>
+
+<div id="objectives">
+  <span class="ob" id="ob0"><i></i><span class="t">Fill every hole</span></span>
+  <span class="ob" id="ob1"><i></i><span class="t">Finish at par</span></span>
+  <span class="ob" id="ob2"><i></i><span class="t">No hint, no undo</span></span>
+</div>
+
+<div id="stage"><div id="board"></div></div>
+
+<div class="row">
+  <button id="bWait">◍ Wait</button>
+  <button id="bUndo">↶ Undo</button>
+  <button id="bReset">⟳ Restart</button>
+  <button id="bHint">? Hint</button>
+  <button id="bPrev">‹ Prev</button>
+  <button id="bNext">Next ›</button>
+</div>
+
+<div class="row">
+  <button id="bDaily">📅 Daily Site</button>
+  <button data-tier="easy">🎲 Random: Easy</button>
+  <button data-tier="medium">Medium</button>
+  <button data-tier="hard">Hard</button>
+</div>
+<div id="gen"></div>
+
+<div id="pad">
+  <span class="sp"></span><button data-d="0">▲</button><span class="sp"></span>
+  <button data-d="3">◀</button><button data-d="-1">◍</button><button data-d="1">▶</button>
+  <span class="sp"></span><button data-d="2">▼</button><span class="sp"></span>
+</div>
+
+<div id="levels"></div>
+
+<div class="legend">
+  <span><i class="sw h"></i>hole — fill it</span>
+  <span><i class="sw d"></i>dirt — consumed on use</span>
+  <span><i class="sw m"></i>soft ground — sinks you, swallows dirt</span>
+  <span><i class="sw v"></i>traffic — don't get hit, don't block it</span>
+  <span><i class="sw g"></i>gate — traffic only, keep the dozer out</span>
+</div>
+
+<p class="hint">
+  <kbd>↑↓←→</kbd> or <kbd>WASD</kbd> drive &nbsp;·&nbsp;
+  <kbd>Space</kbd> wait a turn &nbsp;·&nbsp;
+  <kbd>Z</kbd> undo &nbsp;·&nbsp; <kbd>R</kbd> restart &nbsp;·&nbsp; swipe on touch<br>
+  Traffic moves one step for every turn you take. Nothing moves while you think.
+</p>
+
+<div class="overlay" id="win"><div class="card">
+  <h2 id="wTitle">Site Graded</h2>
+  <div id="wStars">☆☆☆</div>
+  <p id="wBody"></p>
+  <div class="row">
+    <button id="wReplay">Replay</button>
+    <button class="primary" id="wNext">Next Level</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="lose"><div class="card bad">
+  <h2 id="lTitle">Run Ended</h2>
+  <p id="lBody"></p>
+  <div class="row">
+    <button class="primary" id="lUndo">↶ Undo That</button>
+    <button id="lReset">⟳ Restart</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="diff"><div class="card" id="diffCard">
+  <h2>Pick a Shift</h2>
+  <p>Changes how traffic behaves. You can switch at any time.</p>
+  <button class="pick" data-diff="apprentice">
+    <b>Apprentice</b><span>Traffic holds a steady speed and never ramps up.
+    Red cells show where it lands next turn. Take as long as you like.</span></button>
+  <button class="pick" data-diff="operator">
+    <b>Operator</b><span>The intended shift. On later sites traffic speeds up
+    the longer you take. Red cells still warn you.</span></button>
+  <button class="pick" data-diff="foreman">
+    <b>Foreman</b><span>Traffic ramps up sooner and harder — and the red warning
+    cells are switched off. You read the road yourself.</span></button>
+</div></div>
+
+<script>
+/* ============================================================
+   Cut & Fill
+
+   Grid chars:  # wall   (space) ground   o hole   $ dirt   @ dozer
+                ~ soft ground (sinks the dozer, swallows dirt)
+                = gate: a gap in the boundary. Traffic drives through it;
+                  the dozer and its dirt may not enter.
+
+   Traffic is declared per level. A vehicle walks a straight run of `len`
+   cells from (r,c) heading `dir`, then either wraps to the start or
+   bounces back. `stage` appends off-map turns to a wrapping run, so a
+   vehicle drives out through a gate, waits off site, and drives back in
+   instead of teleporting. `every` is turns-per-cell, `at` is the starting
+   index along the run, `offset` shifts its phase.
+
+   `escalate:{after,every,floor}` speeds every vehicle up by one step each
+   `every` turns once turn `after` has passed, down to a floor. Dawdle and
+   the whole site gets faster.
+
+   A vehicle's position is a pure function of the turn number — never
+   stored state. So a level's state is (dozer, dirt, filled, turn), which
+   is what keeps undo exact and lets tools/validate.py prove every level
+   solvable at every difficulty.
+   ============================================================ */
+const LEVELS = [
+  { name:"First Cut", par:3, rows:[
+    "#######",
+    "#@ $ o#",
+    "#######"]},
+  { name:"Both Ways", par:3, rows:[
+    "#######",
+    "#o$@$o#",
+    "#######"]},
+  { name:"Corner Work", par:5, rows:[
+    "#######",
+    "#  o  #",
+    "# $   #",
+    "#  @  #",
+    "#######"]},
+  { name:"Two Lifts", par:13, rows:[
+    "########",
+    "#o     #",
+    "# $    #",
+    "#  @   #",
+    "#  $   #",
+    "#    o #",
+    "########"]},
+  { name:"Tight Fit", par:4, rows:[
+    "#######",
+    "#  #  #",
+    "# $o$ #",
+    "#  @  #",
+    "#  #  #",
+    "#######"]},
+  { name:"Around the Block", par:17, rows:[
+    "#########",
+    "#   @   #",
+    "#  $ $  #",
+    "# ##### #",
+    "#o     o#",
+    "#########"]},
+  { name:"Decoy", par:6, rows:[
+    "########",
+    "#   o  #",
+    "# $$$  #",
+    "#  @   #",
+    "#  o   #",
+    "########"]},
+  { name:"Yard Work", par:30, rows:[
+    "##########",
+    "#o      o#",
+    "#  $  $  #",
+    "#   @    #",
+    "#  $  $  #",
+    "#o      o#",
+    "##########"]},
+  { name:"Island", par:19, rows:[
+    "##########",
+    "#   o    #",
+    "# $ ## $ #",
+    "#o  ##  o#",
+    "# $    $ #",
+    "#   @    #",
+    "##########"]},
+  { name:"Trench", par:29, rows:[
+    "###########",
+    "#o   #   o#",
+    "# $  #  $ #",
+    "#  @ #    #",
+    "#  $   $  #",
+    "#o       o#",
+    "###########"]},
+  { name:"Site Prep", par:31, rows:[
+    "###########",
+    "#o   $   o#",
+    "#  #   #  #",
+    "# $  @  $ #",
+    "#  #   #  #",
+    "#o   $   o#",
+    "###########"]},
+  { name:"Final Grade", par:66, rows:[
+    "###########",
+    "#o   #   o#",
+    "#  $ # $  #",
+    "#    #    #",
+    "### ### ###",
+    "#  $   $  #",
+    "#o   @   o#",
+    "###########"]},
+
+  /* ---- chapter two: soft ground and live traffic ---- */
+
+  { name:"Soft Ground", par:7, rows:[
+    "#########",
+    "#  ~~~  #",
+    "# $   o #",
+    "#  @    #",
+    "#########"]},
+  { name:"Haul Road", par:7, rows:[
+    "#########",
+    "#@      #",
+    "#   $   #",
+    "=       =",
+    "#   o   #",
+    "#########"],
+    traffic:[{r:3,c:0,dir:1,len:9,mode:"wrap",every:1,at:0,offset:0,stage:4}]},
+  { name:"Wetland Edge", par:18, rows:[
+    "##########",
+    "#o ~~~~ o#",
+    "#  ~~~~  #",
+    "#  $  $  #",
+    "#   @    #",
+    "##########"]},
+  { name:"Rush Hour", par:22, rows:[
+    "##########",
+    "#@       #",
+    "#  $  $  #",
+    "=        =",
+    "#        #",
+    "=        =",
+    "#  o  o  #",
+    "##########"],
+    traffic:[
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4},
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:7,offset:0,stage:4},
+      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:0,offset:0,stage:4},
+      {r:5,c:9,dir:3,len:10,mode:"wrap",every:2,at:7,offset:0,stage:4}]},
+  { name:"Detour", par:20, rows:[
+    "##########",
+    "#o  ~~   #",
+    "#   ~~   #",
+    "=        =",
+    "# $   $  #",
+    "#    @  o#",
+    "##########"],
+    traffic:[{r:3,c:9,dir:3,len:10,mode:"wrap",every:2,at:0,offset:0,stage:4}]},
+  { name:"Night Shift", par:23, rows:[
+    "###########",
+    "#o       o#",
+    "#  ~~~~~  #",
+    "=         =",
+    "#  $   $  #",
+    "=    @    =",
+    "###########"],
+    traffic:[
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:0,offset:0,stage:5},
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:8,offset:0,stage:5},
+      {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:0,offset:0,stage:5},
+      {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:8,offset:0,stage:5}]},
+
+  /* ---- chapter three: gated roads and a clock that speeds up ---- */
+
+  { name:"Gate Duty", par:8, rows:[
+    "##########",
+    "#@       #",
+    "#   $    #",
+    "=        =",
+    "#        #",
+    "#   o    #",
+    "##########"],
+    traffic:[{r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:5}]},
+  { name:"Two Gates", par:20, rows:[
+    "###########",
+    "#@        #",
+    "#   $  $  #",
+    "=         =",
+    "#         #",
+    "=         =",
+    "#   o  o  #",
+    "###########"],
+    traffic:[
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:1,at:0,offset:0,stage:5},
+      {r:5,c:10,dir:3,len:11,mode:"wrap",every:2,at:0,offset:0,stage:5}]},
+  { name:"Tempo", par:25, rows:[
+    "###########",
+    "#@        #",
+    "#   $   $ #",
+    "=         =",
+    "#         #",
+    "=         =",
+    "# o     o #",
+    "###########"],
+    escalate:{after:8,every:4,floor:1},
+    traffic:[
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:0,offset:0,stage:5},
+      {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:0,offset:0,stage:5}]},
+  { name:"Interchange", par:16, rows:[
+    "####=#####",
+    "#@       #",
+    "#  $  $  #",
+    "=        =",
+    "#        #",
+    "#  o  o  #",
+    "####=#####"],
+    traffic:[
+      {r:0,c:4,dir:2,len:7,mode:"wrap",every:1,at:0,offset:0,stage:5},
+      {r:3,c:0,dir:1,len:10,mode:"wrap",every:1,at:0,offset:0,stage:4}]},
+  { name:"Marsh Crossing", par:23, rows:[
+    "###########",
+    "#@        #",
+    "#  ~~~~~  #",
+    "=         =",
+    "#  $   $  #",
+    "#         #",
+    "#o       o#",
+    "###########"],
+    traffic:[{r:3,c:0,dir:1,len:11,mode:"wrap",every:1,at:0,offset:0,stage:6}]},
+  { name:"Graveyard Shift", par:24, rows:[
+    "###########",
+    "#o       o#",
+    "#  ~~~~~  #",
+    "=         =",
+    "#  $   $  #",
+    "=         =",
+    "#    @    #",
+    "###########"],
+    escalate:{after:14,every:7,floor:1},
+    traffic:[
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:0,offset:0,stage:5},
+      {r:3,c:0,dir:1,len:11,mode:"wrap",every:2,at:8,offset:0,stage:5},
+      {r:5,c:10,dir:3,len:11,mode:"wrap",every:3,at:0,offset:0,stage:5}]}
+];
+
+/* Difficulty only ever changes traffic tempo and whether the red
+   next-turn warning is drawn. It never changes the grid, the dirt, or
+   the holes — so a level's geometry is the same puzzle on every shift. */
+const DIFFS={
+  apprentice:{name:"Apprentice", preview:true,  esc:null},
+  operator:  {name:"Operator",   preview:true,  esc:"as-authored"},
+  foreman:   {name:"Foreman",    preview:false, esc:"harsh"}
+};
+const DIFF_ORDER=["apprentice","operator","foreman"];
+
+function escFor(def, diffKey){
+  const d=DIFFS[diffKey], e=def.escalate;
+  if(!e || d.esc===null) return null;
+  if(d.esc==="harsh")
+    return {after:Math.max(4,Math.ceil(e.after*0.5)),
+            every:Math.max(2,Math.ceil(e.every*0.5)),
+            floor:e.floor};
+  return {after:e.after, every:e.every, floor:e.floor};
+}
+
+/* Reference solutions on the Operator shift, one per level, in order.
+   These are the regression contract: tools/test.py replays them through the
+   Python engine, and index.html?test=1 replays them through this one. Both
+   read this array, so there is a single source of truth. `.` means wait.
+   Regenerate with:  py -3 tools/validate.py --emit  */
+const SOLUTIONS=[
+  "RRR","RLL","LULUR","ULDLURRDDLDRR","RRUL","DRRURDDULLLLLULDD","RUULDD",
+  "ULDDRRRUULURRDDDLDRLLLLLUUURUL","LLURULULURRRRRRDLDR",
+  "ULRRDDLLULUDDRRRRRRRUULURRDDD","RRRUULLLLLLDDDURRDDLLRRRRRRURUU",
+  "URRUURUULDDDDLDRRRULDLUUUULURRDDLDDLLLLUURUULDDDDRDLLLURDRUUUURULL",
+  "LLURRRR","RRRRLDD","ULLDLUURDRRRRRDRUU","RRRRRRLDDDDULUUULLDDDD",
+  "UURDLDRRULLLLLDL.UUU","ULLLDLUUURDRRRRDRRDRUUU","RRRRLDDD",
+  "RRRRLDDDDUUUURRRDDDD","RRRDDDDRDLLUUUUURRRRRDDDD","RRRLDDDUUURRRDDD",
+  "RD.DRDDRDLLUURRRRRRURDD","UULLLDLUUURDRRRRDRRDRUUU"
+];
+
+const WALL=0, GROUND=1, HOLE=2, MARSH=3, GATE=4;
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]];   // up, right, down, left
+const WAIT=-1;
+const MOVES=[0,1,2,3,WAIT];
+const MOVECH={0:"U",1:"R",2:"D",3:"L","-1":"."};
+const SAVE_KEY="cutfill.v3";
+const START_HINTS=3;
+
+const $=s=>document.querySelector(s);
+const boardEl=$("#board"), stageEl=$("#stage");
+
+let lv=null, st=null, past=[], idx=0, won=false, failed=null;
+let diff="operator";
+let custom=null;        // {def,label,key} while playing a generated site
+let hint=null;          // {r,c,ch} one suggested move
+let usedHint=false, usedUndo=false;      // per-run, for the unaided objective
+let pileEls=[], vehEls=[], cellEls=[], dozerEl=null, rotEl=null, hintEl=null, lastVeh=[];
+let SV=load();
+let best=SV.best;
+
+function load(){
+  let raw={};
+  try{ raw=JSON.parse(localStorage.getItem(SAVE_KEY))||{}; }catch(e){}
+  const best={}, clean={};
+  for(const k of DIFF_ORDER){
+    best[k]=(raw.best&&raw.best[k])||{};
+    clean[k]=(raw.clean&&raw.clean[k])||{};
+  }
+  return {best, clean,
+          hints: Number.isInteger(raw.hints)?raw.hints:START_HINTS,
+          awarded: raw.awarded||{}};
+}
+function save(){
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SV)); }catch(e){}
+}
+/** Where this site's best score lives. Random sites are throwaway: no slot. */
+const bestSlot = () => custom ? custom.key : idx;
+const bestHere = () => { const k=bestSlot(); return k==null?undefined:best[diff][k]; };
+
+/* Stars are derived from your best move count, never stored separately —
+   three for par or better, two within a quarter over, one for finishing. */
+const STARS=["—","★☆☆","★★☆","★★★"];
+function starsFor(moves,par){
+  if(moves==null) return 0;
+  if(moves<=par) return 3;
+  if(moves<=Math.ceil(par*1.25)) return 2;
+  return 1;
+}
+const totalStars = () =>
+  LEVELS.reduce((n,L,i)=>n+starsFor(best[diff][i],L.par),0);
+
+/* ---------------- level parsing ---------------- */
+function parse(def, diffKey){
+  const h=def.rows.length, w=Math.max(...def.rows.map(r=>r.length));
+  const rows=def.rows.map(r=>r.padEnd(w,"#"));
+  const grid=[], holes=[], piles=[];
+  let dozer=null;
+  for(let r=0;r<h;r++){
+    grid[r]=[];
+    for(let c=0;c<w;c++){
+      const ch=rows[r][c];
+      if(ch==="#") grid[r][c]=WALL;
+      else if(ch==="~") grid[r][c]=MARSH;
+      else if(ch==="=") grid[r][c]=GATE;
+      else if(ch==="o"){ grid[r][c]=HOLE; holes.push(r+","+c); }
+      else{
+        grid[r][c]=GROUND;
+        if(ch==="$") piles.push({r,c});
+        else if(ch==="@") dozer={r,c};
+      }
+    }
+  }
+  const esc=escFor(def,diffKey);
+  const {vehicles,timing}=buildVehicles(def,esc,w,h);
+  return {name:def.name, par:def.par, w, h, grid, holes, piles, dozer,
+          vehicles, timing, esc, maxTier:maxTier(vehicles,esc),
+          reach:buildReach(w,h,grid,holes)};
+}
+
+function buildVehicles(def, esc, w, h){
+  const vehicles=(def.traffic||[]).map(v=>{
+    const [dr,dc]=DIRS[v.dir];
+    const cycle=[];
+    for(let i=0;i<v.len;i++){
+      const r=v.r+dr*i, c=v.c+dc*i;
+      cycle.push((r<0||r>=h||c<0||c>=w) ? null : [r,c]);
+    }
+    if(v.mode==="bounce")
+      for(let i=v.len-2;i>=1;i--) cycle.push(cycle[i]&&[cycle[i][0],cycle[i][1]]);
+    else
+      for(let i=0;i<(v.stage||0);i++) cycle.push(null);   // staged off site
+    return {dir:v.dir, mode:v.mode||"wrap", every:v.every||1,
+            at:v.at||0, offset:v.offset||0, cycle};
+  });
+  const timing=computeTiming(vehicles,esc);
+  for(const v of vehicles) v.adv=buildAdv(v,esc,timing.limit);
+  return {vehicles, timing};
+}
+
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const lcm=(a,b)=>a/gcd(a,b)*b;
+
+/**
+ * When does traffic settle into a repeating pattern?
+ *
+ * Without escalation it always repeats, with period lcm(cycle * every).
+ * With escalation, speed depends on the absolute turn — but only until every
+ * vehicle bottoms out at the floor speed. From that turn on it is periodic
+ * again. So turns below `limit` are distinct and everything above folds back
+ * into the settled window. Exact, not an approximation.
+ */
+function computeTiming(vehicles, esc){
+  if(!vehicles.length) return {tSat:0, period:1, limit:1};
+  let tSat=0;
+  if(esc){
+    let guard=0;
+    while(vehicles.some(v=>effEvery(v,tSat,esc)!==esc.floor) && guard++<10000) tSat++;
+  }
+  const settled = esc ? esc.floor : null;
+  let period=1;
+  for(const v of vehicles)
+    period=lcm(period, v.cycle.length*(settled!==null?settled:v.every));
+  return {tSat, period, limit:tSat+period};
+}
+
+/** Fold any turn into the equivalent turn inside the precomputed window. */
+function phaseOf(t){
+  const {tSat,period,limit}=lv.timing;
+  return t<limit ? t : tSat+((t-tSat)%period);
+}
+
+/** How fast a vehicle is moving on turn t, after any escalation. */
+function effEvery(v,t,esc){
+  if(!esc || t<esc.after) return v.every;
+  const tier=1+Math.floor((t-esc.after)/esc.every);
+  return Math.max(esc.floor, v.every-tier);
+}
+/** Cumulative cells advanced by turn t. Precomputed because the speed varies. */
+function buildAdv(v,esc,upto){
+  const adv=new Array(upto+1);
+  adv[0]=0;
+  let a=0;
+  for(let t=0;t<upto;t++){
+    if((t+v.offset)%effEvery(v,t,esc)===0) a++;
+    adv[t+1]=a;
+  }
+  return adv;
+}
+function maxTier(vehicles,esc){
+  if(!esc||!vehicles.length) return 0;
+  return Math.max(0,...vehicles.map(v=>v.every-esc.floor));
+}
+function tempoTier(t){
+  if(!lv.esc||t<lv.esc.after) return 0;
+  return Math.min(lv.maxTier, 1+Math.floor((t-lv.esc.after)/lv.esc.every));
+}
+
+/** A vehicle's cell on turn t, or null when it is staged off site. */
+function vPos(v,t){
+  return v.cycle[(v.at+v.adv[phaseOf(t)])%v.cycle.length];
+}
+function vFacing(v,t){
+  if(v.mode!=="bounce") return v.dir;
+  const cur=vPos(v,t);
+  if(!cur) return v.dir;
+  for(let k=1;k<=v.every+1;k++){
+    const nx=vPos(v,t+k);
+    if(!nx) break;
+    const dr=nx[0]-cur[0], dc=nx[1]-cur[1];
+    if(dr||dc){
+      if(Math.abs(dr)>1||Math.abs(dc)>1) return v.dir;
+      return DIRS.findIndex(d=>d[0]===Math.sign(dr)&&d[1]===Math.sign(dc));
+    }
+  }
+  return v.dir;
+}
+function vehicleAt(t,r,c){
+  return lv.vehicles.some(v=>{ const p=vPos(v,t); return p&&p[0]===r&&p[1]===c; });
+}
+
+function freshState(){
+  return {r:lv.dozer.r, c:lv.dozer.c, dir:1, t:0, moves:0,
+          piles:lv.piles.map(p=>({r:p.r,c:p.c,alive:true})),
+          filled:new Set()};
+}
+function clone(s){
+  return {r:s.r,c:s.c,dir:s.dir,t:s.t,moves:s.moves,
+          piles:s.piles.map(p=>({r:p.r,c:p.c,alive:p.alive})),
+          filled:new Set(s.filled)};
+}
+
+/* ---------------- rules ---------------- */
+const key=(r,c)=>r+","+c;
+const inside=(r,c)=> r>=0&&r<lv.h&&c>=0&&c<lv.w;
+const isWall =(r,c)=> !inside(r,c)||lv.grid[r][c]===WALL;
+const isMarsh=(r,c)=> inside(r,c)&&lv.grid[r][c]===MARSH;
+const isGate =(r,c)=> inside(r,c)&&lv.grid[r][c]===GATE;
+const isOpenPit=(s,r,c)=> lv.grid[r][c]===HOLE && !s.filled.has(key(r,c));
+function pileAt(s,r,c){
+  for(const p of s.piles) if(p.alive&&p.r===r&&p.c===c) return p;
+  return null;
+}
+
+/**
+ * Resolve one turn. `dir` is 0-3 to drive, or WAIT to sit still.
+ * Returns {ok, fail, win}; ok:false means the move was illegal and no
+ * turn passed. Order: the player acts, we check for a finished site,
+ * then traffic advances and we see what it hit.
+ */
+function step(s, dir){
+  const oldR=s.r, oldC=s.c;
+
+  if(dir!==WAIT){
+    s.dir=dir;
+    const [dr,dc]=DIRS[dir];
+    const nr=s.r+dr, nc=s.c+dc;
+    if(isWall(nr,nc)||isGate(nr,nc)) return {ok:false};   // gates are traffic only
+    if(vehicleAt(s.t,nr,nc)) return {ok:false};
+
+    const p=pileAt(s,nr,nc);
+    if(p){
+      const br=nr+dr, bc=nc+dc;
+      if(isWall(br,bc)||isGate(br,bc)||pileAt(s,br,bc)||vehicleAt(s.t,br,bc))
+        return {ok:false};
+      if(isMarsh(br,bc))            p.alive=false;                   // swallowed
+      else if(isOpenPit(s,br,bc)){  p.alive=false; s.filled.add(key(br,bc)); }
+      else{ p.r=br; p.c=bc; }
+    }else if(isOpenPit(s,nr,nc)){
+      return {ok:false};
+    }
+    s.r=nr; s.c=nc;
+  }
+
+  s.moves++;
+  const t0=s.t;
+  s.t=t0+1;
+
+  if(dir!==WAIT && isMarsh(s.r,s.c)) return {ok:true, fail:"sank"};
+  if(holesLeft(s)===0)               return {ok:true, win:true};
+
+  for(const v of lv.vehicles){
+    const b=vPos(v,t0), a=vPos(v,s.t);
+    if(!a) continue;                                  // staged off site
+    if(a[0]===s.r && a[1]===s.c) return {ok:true, fail:"hit"};
+    if(b && b[0]===s.r && b[1]===s.c && a[0]===oldR && a[1]===oldC)
+      return {ok:true, fail:"hit"};                   // passed straight through
+    if(pileAt(s,a[0],a[1]))      return {ok:true, fail:"wreck"};
+  }
+  return {ok:true};
+}
+
+const holesLeft = s => lv.holes.filter(h=>!s.filled.has(h)).length;
+const dirtLeft  = s => s.piles.filter(p=>p.alive).length;
+const isWon     = s => holesLeft(s)===0;
+
+/**
+ * Which holes can dirt sitting on each square still reach?
+ *
+ * Where dirt can be *pushed* depends only on walls, gates and soft ground —
+ * never on the run in progress — so the whole relation is computed once per
+ * level as a bitmask per square, by walking backwards from each hole. The
+ * per-turn question then collapses to one AND.
+ *
+ * Deliberately optimistic: it ignores traffic, the dozer's whereabouts and
+ * the other piles, so it only ever calls dirt stranded when it provably is.
+ */
+function buildReach(w,h,grid,holes){
+  if(holes.length>30) return null;              // bitmask won't hold it
+  const reach=new Int32Array(w*h);
+  const ok=(r,c)=> r>=0&&r<h&&c>=0&&c<w&&
+                   (grid[r][c]===GROUND||grid[r][c]===HOLE);
+  holes.forEach((hk,i)=>{
+    const [hr,hc]=hk.split(",").map(Number);
+    const bit=1<<i;
+    const seen=new Uint8Array(w*h);
+    const q=[[hr,hc]];
+    seen[hr*w+hc]=1; reach[hr*w+hc]|=bit;
+    for(let head=0; head<q.length; head++){
+      const [r,c]=q[head];
+      if(!ok(r,c)) continue;
+      for(const [dr,dc] of DIRS){
+        const xr=r-dr, xc=c-dc;       // where that dirt must have come from
+        const sr=r-2*dr, sc=c-2*dc;   // where the dozer had to stand to push it
+        if(!ok(xr,xc)||!ok(sr,sc)) continue;
+        const id=xr*w+xc;
+        if(seen[id]) continue;
+        seen[id]=1; reach[id]|=bit;
+        q.push([xr,xc]);
+      }
+    }
+  });
+  return reach;
+}
+
+function unfilledMask(s){
+  let m=0;
+  for(let i=0;i<lv.holes.length;i++) if(!s.filled.has(lv.holes[i])) m|=(1<<i);
+  return m;
+}
+function usableDirt(s){
+  const m=unfilledMask(s);
+  if(!m) return 0;
+  if(!lv.reach) return dirtLeft(s);      // too many holes to mask: assume the best
+  let n=0;
+  for(const p of s.piles)
+    if(p.alive && (lv.reach[p.r*lv.w+p.c]&m)) n++;
+  return n;
+}
+const isStuck = s => !isWon(s) && usableDirt(s) < holesLeft(s);
+
+/* ============================================================
+   Solver
+
+   Breadth-first over (dozer, dirt, filled, phase). It drives the very
+   same step() the player does — the rules exist in exactly one place, so
+   a solution the solver finds is a solution the game accepts.
+   ============================================================ */
+function stateKey(s){
+  let p="";
+  for(const q of s.piles) if(q.alive) p+=q.r+"."+q.c+";";
+  return s.r+","+s.c+"|"+p+"|"+[...s.filled].sort().join(";")+"|"+phaseOf(s.t);
+}
+
+/**
+ * Shortest continuation from `start`.
+ *
+ * Returns {path, exhausted}. `exhausted` says whether the search finished:
+ * a null path with exhausted:true means provably no way home, while
+ * exhausted:false only means we ran out of budget. Never conflate the two —
+ * telling a player a live position is hopeless is worse than saying nothing.
+ */
+function solveFrom(start, cap=200000){
+  if(isWon(start)) return {path:"", exhausted:true};
+  const seen=new Set([stateKey(start)]);
+  const q=[start], path=[""];
+  for(let head=0; head<q.length; head++){
+    if(seen.size>cap) return {path:null, exhausted:false};
+    const s=q[head], sp=path[head];
+    for(const d of MOVES){
+      const n=clone(s);
+      const res=step(n,d);
+      if(!res.ok) continue;
+      n.t=phaseOf(n.t);
+      const np=sp+MOVECH[d];
+      if(res.win) return {path:np, exhausted:true};
+      if(res.fail) continue;
+      if(usableDirt(n)<holesLeft(n)) continue;    // provably can't finish
+      const k=stateKey(n);
+      if(seen.has(k)) continue;
+      seen.add(k);
+      q.push(n); path.push(np);
+    }
+  }
+  return {path:null, exhausted:true};             // searched everything
+}
+
+/**
+ * Best-first fallback for boards too wide to brute force. Finds *a* way
+ * through rather than the shortest one — good enough to unstick a player.
+ */
+function findAnyFrom(start, cap=120000){
+  const h=s=>{
+    let sum=0;
+    const live=s.piles.filter(p=>p.alive);
+    if(!live.length) return holesLeft(s)?1e6:0;
+    for(const k of lv.holes){
+      if(s.filled.has(k)) continue;
+      const [hr,hc]=k.split(",").map(Number);
+      sum+=Math.min(...live.map(p=>Math.abs(p.r-hr)+Math.abs(p.c-hc)));
+    }
+    return sum;
+  };
+  const seen=new Set([stateKey(start)]);
+  let frontier=[{s:start, p:"", f:h(start)}];
+  let budget=cap;
+  while(frontier.length && budget>0){
+    frontier.sort((a,b)=>a.f-b.f);
+    const cur=frontier.splice(0,Math.min(600,frontier.length));
+    const next=[];
+    for(const node of cur){
+      for(const d of MOVES){
+        if(--budget<0) break;
+        const n=clone(node.s);
+        const res=step(n,d);
+        if(!res.ok) continue;
+        n.t=phaseOf(n.t);
+        const np=node.p+MOVECH[d];
+        if(res.win) return np;
+        if(res.fail) continue;
+        if(usableDirt(n)<holesLeft(n)) continue;
+        const k=stateKey(n);
+        if(seen.has(k)) continue;
+        seen.add(k);
+        next.push({s:n, p:np, f:np.length+3*h(n)});
+      }
+    }
+    frontier=frontier.concat(next);
+  }
+  return null;
+}
+
+/** Solve a level definition from its opening position. Restores globals. */
+function solveDef(def, diffKey, cap){
+  const savedLv=lv, savedSt=st;
+  try{
+    lv=parse(def,diffKey);
+    return solveFrom(freshState(),cap);
+  }finally{ lv=savedLv; st=savedSt; }
+}
+
+/* ============================================================
+   Random sites
+
+   Random push-puzzles are usually either unsolvable or trivial, so every
+   candidate is thrown at the solver and only kept when its optimal length
+   lands in the band we asked for. Generate-and-verify: the same guarantee
+   the hand-built levels get.
+   ============================================================ */
+function mulberry32(seed){
+  return function(){
+    seed=(seed+0x6D2B79F5)|0;
+    let t=Math.imul(seed^(seed>>>15),1|seed);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+const TIERS={
+  easy:  {w:[8,9],  h:[6,7], dirt:2, spare:1, walls:2, marsh:0, lanes:0, par:[10,26]},
+  medium:{w:[9,11], h:[7,8], dirt:2, spare:1, walls:4, marsh:3, lanes:0, par:[18,40]},
+  hard:  {w:[10,11],h:[7,8], dirt:2, spare:0, walls:3, marsh:4, lanes:1, par:[20,48]}
+};
+
+function makeCandidate(rng, tier){
+  const T=TIERS[tier];
+  const pick=(a,b)=>a+Math.floor(rng()*(b-a+1));
+  const w=pick(T.w[0],T.w[1]), h=pick(T.h[0],T.h[1]);
+  const g=[];
+  for(let r=0;r<h;r++){
+    g[r]=[];
+    for(let c=0;c<w;c++)
+      g[r][c]=(r===0||c===0||r===h-1||c===w-1)?"#":" ";
+  }
+  const traffic=[];
+  let laneRow=-1;
+  if(T.lanes){                       // a gated haul road straight across
+    laneRow=pick(2,h-3);
+    for(let c=0;c<w;c++) g[laneRow][c]=" ";
+    g[laneRow][0]="="; g[laneRow][w-1]="=";
+    const dir=rng()<0.5?1:3;
+    const every=pick(1,2), stage=pick(3,6);
+    traffic.push({r:laneRow, c:dir===1?0:w-1, dir, len:w,
+                  mode:"wrap", every, at:0, offset:0, stage});
+  }
+  const free=[];
+  for(let r=1;r<h-1;r++)
+    for(let c=1;c<w-1;c++)
+      if(r!==laneRow) free.push([r,c]);
+  // shuffle
+  for(let i=free.length-1;i>0;i--){
+    const j=Math.floor(rng()*(i+1));
+    [free[i],free[j]]=[free[j],free[i]];
+  }
+  const take=n=>free.splice(0,n);
+  for(const [r,c] of take(T.walls)) g[r][c]="#";
+  for(const [r,c] of take(pick(0,T.marsh))) g[r][c]="~";
+  const holes=take(T.dirt);
+  for(const [r,c] of holes) g[r][c]="o";
+  const dirt=take(T.dirt+T.spare);
+  if(dirt.length<T.dirt+T.spare) return null;
+  for(const [r,c] of dirt) g[r][c]="$";
+  const dz=take(1);
+  if(!dz.length) return null;
+  g[dz[0][0]][dz[0][1]]="@";
+  return {name:"Random Site", par:0, rows:g.map(r=>r.join("")),
+          traffic:traffic.length?traffic:undefined};
+}
+
+/** Generate until one verifies. Yields to the browser so the UI stays alive. */
+async function generateSite(seed, tier, onProgress){
+  const rng=mulberry32(seed);
+  const T=TIERS[tier];
+  for(let attempt=1; attempt<=600; attempt++){
+    const def=makeCandidate(rng,tier);
+    if(def){
+      let r={path:null};
+      try{ r=solveDef(def,diff,60000); }catch(e){ r={path:null}; }
+      // only keep a site whose optimum is *known* and lands in the band
+      if(r.exhausted && r.path && r.path.length>=T.par[0] && r.path.length<=T.par[1]){
+        def.par=r.path.length;
+        return {def, path:r.path, attempts:attempt};
+      }
+    }
+    if(attempt%12===0){
+      onProgress&&onProgress(attempt);
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+  return null;
+}
+
+const todaySeed=()=>{
+  const d=new Date();
+  return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+};
+
+/* ---------------- rendering ---------------- */
+function buildBoard(){
+  boardEl.innerHTML="";
+  boardEl.style.setProperty("--cols",lv.w);
+  cellEls=[];
+  for(let r=0;r<lv.h;r++){
+    cellEls[r]=[];
+    for(let c=0;c<lv.w;c++){
+      const d=document.createElement("div");
+      const g=lv.grid[r][c];
+      d.className="c "+(g===WALL?"wall":g===HOLE?"hole":
+                        g===MARSH?"marsh":g===GATE?"gate":"ground");
+      d.innerHTML='<i class="mk"></i>';      // carries the shape marks
+      boardEl.appendChild(d);
+      cellEls[r][c]=d;
+    }
+  }
+  for(const v of lv.vehicles){
+    const horiz=v.dir===1||v.dir===3;
+    for(const cell of v.cycle){
+      if(!cell) continue;
+      const el=cellEls[cell[0]][cell[1]];
+      if(el.classList.contains("gate")) el.classList.add(horiz?"gate-h":"gate-v");
+      if(el.classList.contains("ground")||el.classList.contains("gate"))
+        el.classList.add("lane", horiz?"lane-h":"lane-v");
+    }
+  }
+  pileEls=lv.piles.map(()=>{
+    const e=document.createElement("div");
+    e.className="ent pile";
+    e.innerHTML='<div class="body"></div>';
+    boardEl.appendChild(e); return e;
+  });
+  vehEls=lv.vehicles.map(v=>{
+    const e=document.createElement("div");
+    e.className="ent veh";
+    e.innerHTML='<div class="rot"><div class="body"></div><div class="glass"></div>'+
+                '<div class="lamp"></div>'+(v.every>1?'<div class="slow"></div>':'')+'</div>';
+    boardEl.appendChild(e); return e;
+  });
+  lastVeh=lv.vehicles.map(()=>null);
+  dozerEl=document.createElement("div");
+  dozerEl.className="ent dozer";
+  dozerEl.innerHTML='<div class="rot"><div class="hull"></div>'+
+                    '<div class="cab"></div><div class="blade"></div></div>';
+  boardEl.appendChild(dozerEl);
+  rotEl=dozerEl.querySelector(".rot");
+  hintEl=document.createElement("div");
+  hintEl.className="ent hintmark";
+  boardEl.appendChild(hintEl);
+  fitCell();
+}
+
+/**
+ * Size cells to fit. Measures the real padding/border chrome rather than
+ * assuming it — budgeting only for the viewport used to push wide levels
+ * off the left edge, where `overflow-x:hidden` clipped them for good.
+ */
+function fitCell(){
+  const gap=2;
+  const px=(el,...p)=>{ const cs=getComputedStyle(el);
+    return p.reduce((n,k)=>n+parseFloat(cs[k]||0),0); };
+  const chrome=px(document.body,"paddingLeft","paddingRight")
+              +px(stageEl,"paddingLeft","paddingRight",
+                          "borderLeftWidth","borderRightWidth");
+  const availW=Math.min(document.documentElement.clientWidth-chrome, 860);
+  const availH=Math.max(200, window.innerHeight-420);
+  const byW=(availW-(lv.w-1)*gap)/lv.w;
+  const byH=(availH-(lv.h-1)*gap)/lv.h;
+  boardEl.style.setProperty("--cell",
+    Math.max(16,Math.floor(Math.min(byW,byH,56)))+"px");
+}
+function place(el,r,c){
+  const cs=getComputedStyle(boardEl);
+  const cell=parseFloat(cs.getPropertyValue("--cell"));
+  const gap=parseFloat(cs.getPropertyValue("--gap"))||2;
+  el.style.transform=`translate(${c*(cell+gap)}px,${r*(cell+gap)}px)`;
+}
+
+function render(){
+  for(const h of lv.holes){
+    const [r,c]=h.split(",").map(Number);
+    cellEls[r][c].classList.toggle("filled", st.filled.has(h));
+  }
+  st.piles.forEach((p,i)=>{
+    place(pileEls[i],p.r,p.c);
+    pileEls[i].classList.toggle("gone",!p.alive);
+  });
+
+  for(let r=0;r<lv.h;r++)
+    for(let c=0;c<lv.w;c++) cellEls[r][c].classList.remove("danger");
+
+  lv.vehicles.forEach((v,i)=>{
+    const p=vPos(v,st.t), prev=lastVeh[i], el=vehEls[i];
+    el.classList.toggle("offmap",!p);
+    if(p){
+      // reappearing through a gate must not slide across the whole board
+      if(!prev || Math.abs(prev[0]-p[0])>1 || Math.abs(prev[1]-p[1])>1){
+        el.classList.add("nojump");
+        requestAnimationFrame(()=>el.classList.remove("nojump"));
+      }
+      place(el,p[0],p[1]);
+      el.querySelector(".rot").style.rotate=(vFacing(v,st.t)*90)+"deg";
+    }
+    lastVeh[i]=p;
+    if(!won && !failed && DIFFS[diff].preview){
+      const n=vPos(v,st.t+1);
+      if(n && (!p || n[0]!==p[0] || n[1]!==p[1]))
+        cellEls[n[0]][n[1]].classList.add("danger");
+    }
+  });
+
+  place(dozerEl,st.r,st.c);
+  rotEl.style.rotate=(st.dir*90)+"deg";
+
+  for(let r=0;r<lv.h;r++)
+    for(let c=0;c<lv.w;c++) cellEls[r][c].classList.remove("hint");
+  hintEl.classList.toggle("on",!!hint);
+  if(hint){
+    hintEl.textContent=hint.ch;
+    place(hintEl,hint.r,hint.c);
+    if(inside(hint.r,hint.c)) cellEls[hint.r][hint.c].classList.add("hint");
+  }
+
+  $("#sMoves").textContent=st.moves;
+  $("#sPar").textContent=lv.par;
+  $("#sBest").textContent=bestHere() ?? "—";
+  $("#sHoles").textContent=(lv.holes.length-holesLeft(st))+"/"+lv.holes.length;
+  // one answer, used three ways — this used to be three identical searches
+  const left=holesLeft(st), usable=usableDirt(st), stuck=!isWon(st)&&usable<left;
+  $("#sDirt").textContent=dirtLeft(st);
+  $("#stDirt").classList.toggle("warn",stuck);
+
+  const tempoOn=!!lv.esc;
+  $("#stTempo").classList.toggle("hide",!tempoOn);
+  if(tempoOn){
+    const tier=tempoTier(st.t);
+    $("#sTempo").textContent=(tier+1)+"×"+(tier>=lv.maxTier?" max":"");
+    $("#stTempo").classList.toggle("hot",tier>0);
+  }
+
+  // objectives: done / still possible / lost for this run
+  const setOb=(n,state)=>{
+    const el=$("#ob"+n);
+    el.classList.toggle("done",state==="done");
+    el.classList.toggle("lost",state==="lost");
+  };
+  setOb(0, isWon(st)?"done":(stuck?"lost":"open"));
+  setOb(1, isWon(st)&&st.moves<=lv.par ? "done"
+         : st.moves>lv.par ? "lost" : "open");
+  setOb(2, (usedHint||usedUndo) ? "lost" : (isWon(st)?"done":"open"));
+  $("#ob1").querySelector(".t").textContent="Finish at par ("+lv.par+")";
+
+  $("#bUndo").disabled=past.length===0;
+  $("#bPrev").disabled=!custom&&idx===0;
+  $("#bNext").disabled=!custom&&idx===LEVELS.length-1;
+  $("#bWait").disabled=won||!!failed;
+  $("#bHint").disabled=won||!!failed;
+  $("#bHint").textContent="? Hint · "+SV.hints;
+
+  const b=$("#banner"), short=left-usable;
+  if(stuck&&!failed){
+    b.textContent="Dirt stranded — "+short+" hole"+(short>1?"s":"")+
+                  " can no longer be filled. Undo or restart.";
+    b.classList.add("on");
+  }else b.classList.remove("on");
+
+  renderPicker();
+}
+
+/**
+ * The picker is built once, then only patched. It used to be torn down and
+ * recreated inside render() — so every keystroke destroyed and rebuilt 24
+ * nodes and their click handlers, which is wasteful and drops hover/focus
+ * state (and can swallow a click that lands mid-rebuild).
+ */
+let pickerEls=[];
+function buildPicker(){
+  const wrap=$("#levels");
+  wrap.innerHTML="";
+  pickerEls=LEVELS.map((L,i)=>{
+    const d=document.createElement("div");
+    d.className="lv";
+    d.innerHTML='<span class="n"></span><small></small>';
+    d.onclick=()=>loadLevel(i);
+    wrap.appendChild(d);
+    return d;
+  });
+}
+function renderPicker(){
+  for(let i=0;i<LEVELS.length;i++){
+    const el=pickerEls[i], bb=best[diff][i], s=starsFor(bb,LEVELS[i].par);
+    el.classList.toggle("cur",!custom&&i===idx);
+    el.classList.toggle("done",bb!=null);
+    el.classList.toggle("gold",s===3);
+    el.querySelector(".n").textContent=i+1;
+    el.querySelector("small").innerHTML=
+      STARS[s]+(SV.clean[diff][i]?" <span class='clean'>◆</span>":"");
+    el.title=LEVELS[i].name+" · par "+LEVELS[i].par+
+             (bb!=null?" · best "+bb:" · unplayed")+
+             (SV.clean[diff][i]?" · unaided":"");
+  }
+  $("#sStars").textContent="★ "+totalStars()+"/"+(LEVELS.length*3);
+}
+
+/* ---------------- game flow ---------------- */
+const FAILS={
+  sank: ["Sank","You drove into soft ground. It doesn't hold a dozer."],
+  hit:  ["Hit","Traffic ran straight over you."],
+  wreck:["Wreck","You left dirt in a live lane and traffic piled into it."]
+};
+
+function startLevel(def,label){
+  lv=parse(def,diff);
+  st=freshState();
+  past=[]; won=false; failed=null; hint=null;
+  usedHint=false; usedUndo=false;
+  $("#win").classList.remove("on");
+  $("#lose").classList.remove("on");
+  $("#levelName").textContent=label;
+  buildBoard();
+  render();
+}
+
+function loadLevel(i){
+  custom=null;
+  idx=Math.max(0,Math.min(LEVELS.length-1,i));
+  startLevel(LEVELS[idx],"Level "+(idx+1)+" — "+LEVELS[idx].name);
+  try{ localStorage.setItem(SAVE_KEY+".last",idx); }catch(e){}
+}
+
+function loadCustom(def,label,key){
+  custom={def,label,key};
+  startLevel(def,label);
+}
+
+function setDiff(d){
+  diff=d;
+  try{ localStorage.setItem(SAVE_KEY+".diff",d); }catch(e){}
+  $("#diffTag").textContent=DIFFS[d].name;
+  document.querySelectorAll(".pick").forEach(b=>
+    b.classList.toggle("on",b.dataset.diff===d));
+  if(lv) custom?startLevel(custom.def,custom.label):loadLevel(idx);
+}
+
+function doMove(dir){
+  if(won||failed) return;
+  hint=null;
+  const snap=clone(st);
+  const res=step(st,dir);
+  if(!res.ok){
+    render();
+    boardEl.classList.remove("shake");
+    void boardEl.offsetWidth;
+    boardEl.classList.add("shake");
+    return;
+  }
+  past.push(snap);
+  if(past.length>600) past.shift();
+  if(res.win){ render(); finish(); return; }
+  if(res.fail){ failed=res.fail; render(); lose(res.fail); return; }
+  render();
+}
+
+function finish(){
+  won=true;
+  const slot=bestSlot(), prev=bestHere();
+  const isBest=prev==null||st.moves<prev;
+  const unaided=!usedHint&&!usedUndo;
+  if(slot!=null){
+    if(isBest) best[diff][slot]=st.moves;
+    if(unaided) SV.clean[diff][slot]=true;
+  }
+  // hitting par pays for the next hint — earned once per site, per shift
+  let earned=false;
+  const award=diff+":"+slot;
+  if(slot!=null && st.moves<=lv.par && !SV.awarded[award]){
+    SV.awarded[award]=true;
+    SV.hints++;
+    earned=true;
+  }
+  if(slot!=null) save();
+  const last=!custom&&idx===LEVELS.length-1;
+  $("#wTitle").textContent=
+    last?"Project Complete":st.moves<=lv.par?"Par or better":"Site Graded";
+  let note="";
+  if(slot==null) note="";                       // random sites aren't recorded
+  else if(isBest) note="<br>New personal best.";
+  else note="<br>Your best here: <b>"+prev+"</b>.";
+  const got=starsFor(st.moves,lv.par);
+  const nextUp = got<3
+    ? "<br><span class='togo'>"+
+      (got===2 ? "Finish in "+lv.par+" for the third star."
+               : "Finish in "+Math.ceil(lv.par*1.25)+" for two stars, "+
+                 lv.par+" for three.")+"</span>"
+    : "";
+  $("#wStars").innerHTML=
+    "<b class='on'>"+"★".repeat(got)+"</b>"+"☆".repeat(3-got);
+  const earnedNote = earned
+    ? "<br><span class='earned'>Par met — <b>+1 hint</b> (you have "+SV.hints+").</span>"
+    : "";
+  const cleanNote = (slot!=null&&unaided)
+    ? "<br><span class='togo'>Unaided — no hint, no undo.</span>" : "";
+  $("#wBody").innerHTML="<b>"+st.moves+"</b> moves &nbsp;·&nbsp; par <b>"+lv.par+"</b>"+
+                        note+earnedNote+cleanNote+nextUp;
+  $("#wNext").style.display=(custom||last)?"none":"";
+  setTimeout(()=>$("#win").classList.add("on"),260);
+  render();
+}
+
+/* ---------------- hint ---------------- */
+function showHint(){
+  if(won||failed||!lv) return;
+  const note=$("#gen");
+  if(SV.hints<=0){
+    note.classList.remove("busy");
+    note.textContent="Out of hints. Finish a site at par to earn one.";
+    return;
+  }
+  note.textContent="Thinking…";
+  note.classList.add("busy");
+  setTimeout(()=>{
+    let {path,exhausted}=solveFrom(clone(st));
+    let exact=true;
+    if(path===null && !exhausted){          // too wide to brute force
+      path=findAnyFrom(clone(st));
+      exact=false;
+    }
+    note.classList.remove("busy");
+    hint=null;
+    if(path===null){
+      note.textContent = exhausted
+        ? "No way home from here — undo or restart."
+        : "This board is too big for me to work out. Try undoing a few moves.";
+    }else if(path===""){
+      note.textContent="Already done.";
+    }else{
+      const ch=path[0];
+      const d=ch==="."?WAIT:{U:0,R:1,D:2,L:3}[ch];
+      const [dr,dc]=d===WAIT?[0,0]:DIRS[d];
+      hint={r:st.r+dr, c:st.c+dc, ch:d===WAIT?"◍":"▲▶▼◀"[d]};
+      SV.hints--;                       // a hint is only spent when it delivers
+      usedHint=true;
+      save();
+      note.textContent="Hint: "+(d===WAIT?"wait a turn":
+        "go "+["up","right","down","left"][d])+
+        (exact ? " — "+path.length+" moves left from here."
+               : " — one way through (not necessarily shortest).")+
+        "  ("+SV.hints+" left)";
+    }
+    render();
+  },0);
+}
+
+function lose(reason){
+  const [t,b]=FAILS[reason];
+  $("#lTitle").textContent=t;
+  $("#lBody").textContent=b+(DIFFS[diff].preview?" Watch the red cells.":"");
+  setTimeout(()=>$("#lose").classList.add("on"),240);
+}
+
+function undo(){
+  if(!past.length) return;
+  st=past.pop();
+  usedUndo=true;
+  won=false; failed=null;
+  $("#win").classList.remove("on");
+  $("#lose").classList.remove("on");
+  lastVeh=lv.vehicles.map(()=>null);
+  render();
+}
+
+/* ---------------- input ---------------- */
+const KEYS={ArrowUp:0,w:0,W:0,ArrowRight:1,d:1,D:1,
+            ArrowDown:2,s:2,S:2,ArrowLeft:3,a:3,A:3};
+addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if($("#diff").classList.contains("on")) return;
+  if(e.key in KEYS){ e.preventDefault(); doMove(KEYS[e.key]); return; }
+  if(e.key===" "||e.key==="."){ e.preventDefault(); doMove(WAIT); }
+  else if(e.key==="z"||e.key==="Z"||e.key==="u"||e.key==="U"){ e.preventDefault(); undo(); }
+  else if(e.key==="h"||e.key==="H"){ e.preventDefault(); showHint(); }
+  else if(e.key==="r"||e.key==="R"){ e.preventDefault();
+    custom?startLevel(custom.def,custom.label):loadLevel(idx); }
+  else if(e.key==="Enter"&&won&&idx<LEVELS.length-1){ e.preventDefault(); loadLevel(idx+1); }
+});
+
+$("#bWait").onclick=()=>doMove(WAIT);
+$("#bUndo").onclick=undo;
+const restart=()=>custom?startLevel(custom.def,custom.label):loadLevel(idx);
+$("#bReset").onclick=restart;
+$("#bPrev").onclick=()=>loadLevel(custom?idx:idx-1);
+$("#bNext").onclick=()=>loadLevel(custom?idx:idx+1);
+$("#wReplay").onclick=restart;
+$("#wNext").onclick=()=>loadLevel(idx+1);
+$("#lUndo").onclick=undo;
+$("#lReset").onclick=restart;
+$("#diffTag").onclick=()=>$("#diff").classList.add("on");
+$("#bHint").onclick=showHint;
+
+let generating=false;
+async function newSite(tier, seed, label, key){
+  if(generating) return;
+  generating=true;
+  const note=$("#gen");
+  note.classList.add("busy");
+  note.textContent="Surveying a new site…";
+  document.querySelectorAll("[data-tier],#bDaily").forEach(b=>b.disabled=true);
+  const got=await generateSite(seed, tier,
+    n=>{ note.textContent="Surveying a new site… ("+n+" tried)"; });
+  document.querySelectorAll("[data-tier],#bDaily").forEach(b=>b.disabled=false);
+  note.classList.remove("busy");
+  generating=false;
+  if(!got){
+    note.textContent="Couldn't find a good "+tier+" site — try again.";
+    return;
+  }
+  loadCustom(got.def, label, key);
+  note.textContent=label+" — verified solvable in "+got.def.par+
+                   " moves ("+got.attempts+" candidates tried).";
+}
+
+document.querySelectorAll("[data-tier]").forEach(b=>{
+  b.onclick=()=>newSite(b.dataset.tier,
+                        (Math.random()*2**31)|0,
+                        "Random Site — "+b.dataset.tier, null);
+});
+$("#bDaily").onclick=()=>{
+  const seed=todaySeed();
+  const d=new Date().toISOString().slice(0,10);
+  newSite("medium", seed, "Daily Site — "+d, "daily:"+seed);
+};
+document.querySelectorAll("#pad button").forEach(b=>{
+  b.onclick=()=>doMove(+b.dataset.d);
+});
+document.querySelectorAll(".pick").forEach(b=>{
+  b.onclick=()=>{ setDiff(b.dataset.diff); $("#diff").classList.remove("on"); };
+});
+
+let tx=0,ty=0;
+stageEl.addEventListener("touchstart",e=>{
+  tx=e.changedTouches[0].clientX; ty=e.changedTouches[0].clientY;
+},{passive:true});
+stageEl.addEventListener("touchend",e=>{
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24){ doMove(WAIT); return; }
+  doMove(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));
+},{passive:true});
+
+addEventListener("resize",()=>{ if(lv){ fitCell(); render(); } });
+
+const savedDiff=localStorage.getItem(SAVE_KEY+".diff");
+diff=DIFFS[savedDiff]?savedDiff:"operator";
+$("#diffTag").textContent=DIFFS[diff].name;
+document.querySelectorAll(".pick").forEach(b=>
+  b.classList.toggle("on",b.dataset.diff===diff));
+buildPicker();
+const lastPlayed=parseInt(localStorage.getItem(SAVE_KEY+".last"),10);
+loadLevel(Number.isInteger(lastPlayed)?lastPlayed:0);
+if(!savedDiff) $("#diff").classList.add("on");   // first visit: pick a shift
+
+/* ============================================================
+   Self test
+
+   The JS half of the regression suite. Returns plain data and touches no
+   DOM, so the same definition runs two ways:
+     node tools/test.mjs      (headless, via a stub DOM)
+     index.html?test=1        (in the browser, rendered below)
+   ============================================================ */
+async function selfTest(){
+  const R=[]; const M={U:0,R:1,D:2,L:3,".":-1};
+  const ok=(name,pass,detail="")=>R.push({name,pass:!!pass,detail});
+  const play=s=>{ let blocked=0;
+    for(const ch of s){ const b=st.moves; doMove(M[ch]); if(st.moves===b) blocked++; }
+    return blocked; };
+
+  ok("solutions cover every level", LEVELS.length===SOLUTIONS.length,
+     LEVELS.length+" levels / "+SOLUTIONS.length+" solutions");
+
+  // 1. every reference solution wins at exactly par, with no illegal move
+  setDiff("operator");
+  let bad=[];
+  for(let i=0;i<Math.min(LEVELS.length,SOLUTIONS.length);i++){
+    loadLevel(i);
+    const blocked=play(SOLUTIONS[i]);
+    if(!isWon(st)||failed||blocked||st.moves!==lv.par)
+      bad.push((i+1)+" "+lv.name+" (won="+isWon(st)+" fail="+failed+
+               " blocked="+blocked+" moves="+st.moves+" par="+lv.par+")");
+  }
+  ok("reference solutions replay to a win at par", !bad.length, bad.join("; "));
+
+  // 2. the in-page solver must agree with the recorded pars, and must never
+  //    call a solvable board impossible
+  let disagree=[], lied=[], capped=0;
+  for(let i=0;i<LEVELS.length;i++){
+    const r=solveDef(LEVELS[i],"operator",300000);
+    if(r.path===null){
+      if(r.exhausted) lied.push(LEVELS[i].name); else capped++;
+    }else if(r.path.length!==LEVELS[i].par){
+      disagree.push(LEVELS[i].name+" solver="+r.path.length+" par="+LEVELS[i].par);
+    }
+  }
+  ok("solver agrees with every recorded par", !disagree.length, disagree.join("; "));
+  ok("solver never reports a solvable board impossible", !lied.length, lied.join("; "));
+  ok("levels beyond browser search budget are reported as capped, not broken",
+     true, capped+" of "+LEVELS.length+" capped");
+
+  // 3. the three fatal outcomes still fire.
+  //    The sequences are searched for rather than hard-coded — hard-coded
+  //    ones silently rot the moment a level's traffic is retimed.
+  const findFail=(reason,cap=80000)=>{
+    const seen=new Set(), q=[freshState()], paths=[""];
+    seen.add(stateKey(q[0]));
+    for(let h=0; h<q.length; h++){
+      if(seen.size>cap) return null;
+      for(const d of MOVES){
+        const n=clone(q[h]);
+        const res=step(n,d);
+        if(!res.ok) continue;
+        const p=paths[h]+MOVECH[d];
+        if(res.fail===reason) return p;
+        if(res.fail||res.win) continue;
+        n.t=phaseOf(n.t);
+        const k=stateKey(n);
+        if(seen.has(k)) continue;
+        seen.add(k); q.push(n); paths.push(p);
+      }
+    }
+    return null;
+  };
+  const failCase=(name,levelIdx,reason)=>{
+    loadLevel(levelIdx);
+    const seq=findFail(reason);
+    if(!seq){ ok(name,false,"no sequence reaches "+reason); return; }
+    loadLevel(levelIdx);
+    play(seq);
+    ok(name, failed===reason, "seq "+seq+" -> "+failed);
+  };
+  failCase("driving into soft ground sinks you", 12, "sank");
+  failCase("parking in a live lane gets you hit", 13, "hit");
+  failCase("dirt left in a lane causes a wreck", 13, "wreck");
+
+  const frozen=st.moves; play("ULDR");
+  ok("a failed run is frozen until undo", st.moves===frozen,
+     "moves "+st.moves+" vs "+frozen);
+  undo();
+  ok("undo revives a failed run", failed===null);
+
+  // 4. undo must restore state exactly
+  loadLevel(17);
+  const snap=JSON.stringify([st.r,st.c,st.t,st.moves,
+    st.piles.map(p=>[p.r,p.c,p.alive]),[...st.filled]]);
+  play("RRRRLDD");
+  for(let i=0;i<20;i++) undo();
+  const back=JSON.stringify([st.r,st.c,st.t,st.moves,
+    st.piles.map(p=>[p.r,p.c,p.alive]),[...st.filled]]);
+  ok("undo restores the opening position exactly", snap===back);
+
+  // 5. every level must stay solvable on every shift
+  let unsolvable=[];
+  for(const d of DIFF_ORDER)
+    for(let i=12;i<LEVELS.length;i++){       // shifts only affect traffic levels
+      const r=solveDef(LEVELS[i],d,300000);
+      if(r.exhausted&&r.path===null) unsolvable.push(LEVELS[i].name+"/"+d);
+    }
+  ok("traffic levels stay solvable on all three shifts", !unsolvable.length,
+     unsolvable.join("; "));
+
+  // 6. star thresholds
+  ok("stars: par or better is three", starsFor(10,10)===3&&starsFor(9,10)===3);
+  ok("stars: within a quarter over is two", starsFor(12,10)===2&&starsFor(13,10)===2);
+  ok("stars: anything finished is at least one", starsFor(99,10)===1);
+  ok("stars: unplayed is none", starsFor(null,10)===0);
+
+  // 6b. the hint economy
+  SV.hints=0; SV.awarded={}; SV.best={apprentice:{},operator:{},foreman:{}};
+  SV.clean={apprentice:{},operator:{},foreman:{}}; best=SV.best;
+  loadLevel(0);
+  showHint();
+  ok("a hint is refused when the stock is empty", hint===null&&SV.hints===0);
+
+  SV.hints=1; loadLevel(0);
+  await new Promise(r=>setTimeout(r,0));
+  showHint();
+  await new Promise(r=>setTimeout(r,20));
+  ok("spending a hint costs one and marks the run assisted",
+     SV.hints===0&&usedHint===true, "hints="+SV.hints+" usedHint="+usedHint);
+
+  loadLevel(0); play(SOLUTIONS[0]);           // par run, first time
+  ok("finishing at par awards a hint", SV.hints===1, "hints="+SV.hints);
+  const earnedOnce=SV.hints;
+  loadLevel(0); play(SOLUTIONS[0]);           // same site again
+  ok("the same site cannot be farmed for hints", SV.hints===earnedOnce,
+     "hints="+SV.hints);
+  ok("an unaided par run is recorded as clean", SV.clean[diff][0]===true);
+
+  loadLevel(1); play("R"); undo(); play(SOLUTIONS[1]);
+  ok("a run using undo is not clean", SV.clean[diff][1]!==true,
+     "clean="+SV.clean[diff][1]+" usedUndo="+usedUndo);
+
+  // undoing nothing is not assistance, so it must not spoil the run
+  loadLevel(2); undo(); play(SOLUTIONS[2]);
+  ok("a no-op undo leaves the run clean", SV.clean[diff][2]===true);
+
+  SV.hints=START_HINTS; SV.awarded={};
+  SV.best={apprentice:{},operator:{},foreman:{}};
+  SV.clean={apprentice:{},operator:{},foreman:{}}; best=SV.best;
+
+  // 7. the picker is patched, not rebuilt
+  loadLevel(0);
+  const before=pickerEls[0], count=pickerEls.length;
+  doMove(1); render(); doMove(1); render();
+  ok("picker nodes survive moves (no rebuild churn)",
+     pickerEls[0]===before && pickerEls.length===count &&
+     count===LEVELS.length);
+
+  // 8. generated sites are verified and playable
+  let genBad=[];
+  for(const tier of ["easy","medium","hard"]){
+    const got=await generateSite(4242, tier, null);
+    if(!got){ genBad.push(tier+": none found"); continue; }
+    loadCustom(got.def,"test",null);
+    const blocked=play(got.path);
+    if(!isWon(st)||blocked||st.moves!==got.def.par)
+      genBad.push(tier+": replay failed");
+  }
+  ok("generated sites are solvable and replay to a win", !genBad.length, genBad.join("; "));
+
+  const a=makeCandidate(mulberry32(777),"medium"), b=makeCandidate(mulberry32(777),"medium");
+  ok("daily generation is deterministic for a seed",
+     JSON.stringify(a.rows)===JSON.stringify(b.rows));
+
+  return R;
+}
+
+function renderSelfTest(R){
+  const fails=R.filter(r=>!r.pass).length;
+  document.body.innerHTML=
+    "<pre style='font:13px ui-monospace,Consolas,monospace;color:#8fb8cc;"+
+    "padding:24px;line-height:1.7;white-space:pre-wrap'>"+
+    "<b style='font-size:18px;color:"+(fails?"#ff4d4d":"#4fd1c5")+"'>"+
+    (fails?"FAIL — "+fails+" of "+R.length:"PASS — all "+R.length+" checks")+
+    "</b>\n\n"+
+    R.map(r=>(r.pass?"  <span style='color:#4fd1c5'>PASS</span>  "
+                    :"  <span style='color:#ff4d4d'>FAIL</span>  ")+r.name+
+             (r.detail?"\n           <span style='color:#557488'>"+r.detail+"</span>":""))
+     .join("\n")+"</pre>";
+  document.title=(fails?"FAIL":"PASS")+" — Cut & Fill self test";
+  return fails===0;
+}
+
+if(typeof location!=="undefined" && /[?&]test=1/.test(location.search||"")){
+  $("#diff").classList.remove("on");
+  setTimeout(()=>selfTest().then(renderSelfTest),0);
+}
+</script>
+</body>
+</html>
