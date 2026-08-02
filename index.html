@@ -143,6 +143,11 @@ h1 span{color:var(--dozer)}
 .ent{position:absolute;width:var(--cell);height:var(--cell);left:0;top:0;
   transition:transform .11s ease-out;will-change:transform}
 .ent.nojump{transition:none}
+/* Held keys repeat every ~25-35ms, far faster than a 110ms transition can
+   finish. Left animating, the sprite never arrives (it reads as stuck between
+   cells) and the rotation is caught mid-turn (it reads as stuck at an angle).
+   While moves are outrunning the animation, snap instead. */
+#board.snap .ent,#board.snap .ent .rot{transition:none}
 .ent.offmap{opacity:0;pointer-events:none}
 
 .pile{padding:4px}
@@ -285,6 +290,11 @@ body.ads .adslot{display:flex}
 .overlay{position:fixed;inset:0;display:none;place-items:center;
   background:rgba(5,9,12,.82);backdrop-filter:blur(3px);z-index:20;padding:20px}
 .overlay.on{display:grid}
+/* keyboard focus inside a panel has to be unmistakable — it is the cursor */
+.overlay button:focus{outline:none;border-color:var(--dozer);
+  box-shadow:0 0 0 2px rgba(255,174,26,.35);color:#eaf4f9}
+.overlay button.primary:focus{box-shadow:0 0 0 3px rgba(255,174,26,.45)}
+.overlay .pick:focus{border-color:var(--dozer)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:26px 30px;text-align:center;max-width:380px;width:100%;
   box-shadow:0 30px 80px -30px #000;animation:pop .22s ease-out}
@@ -1726,14 +1736,16 @@ function fitCell(){
   const availH=Math.max(160, window.innerHeight-used-8);
   const byW=(availW-(lv.w-1)*gap)/lv.w;
   const byH=(availH-(lv.h-1)*gap)/lv.h;
-  boardEl.style.setProperty("--cell",
-    Math.max(16,Math.floor(Math.min(byW,byH,56)))+"px");
+  cellPx=Math.max(16,Math.floor(Math.min(byW,byH,56)));
+  gapPx=gap;
+  boardEl.style.setProperty("--cell",cellPx+"px");
 }
+/* Cached by fitCell(). Reading computed style here meant a forced layout
+   flush per entity per render, right after we had just written styles. */
+let cellPx=48, gapPx=2;
 function place(el,r,c){
-  const cs=getComputedStyle(boardEl);
-  const cell=parseFloat(cs.getPropertyValue("--cell"));
-  const gap=parseFloat(cs.getPropertyValue("--gap"))||2;
-  el.style.transform=`translate(${c*(cell+gap)}px,${r*(cell+gap)}px)`;
+  const step=cellPx+gapPx;
+  el.style.transform=`translate(${c*step}px,${r*step}px)`;
 }
 
 function render(){
@@ -1903,8 +1915,15 @@ function setDiff(d){
   if(lv) custom?startLevel(custom.def,custom.label):loadLevel(idx);
 }
 
+const ANIM_MS=120;                 // a touch over the .11s transition
+let lastMoveAt=0;
 function doMove(dir){
   if(won||failed) return;
+  // if moves are arriving faster than the animation can finish, stop animating
+  // rather than letting the sprite trail behind or freeze mid-rotation
+  const now=(typeof performance!=="undefined"?performance.now():Date.now());
+  boardEl.classList.toggle("snap", now-lastMoveAt<ANIM_MS);
+  lastMoveAt=now;
   hint=null;
   const snap=clone(st);
   const res=step(st,dir);
@@ -1976,7 +1995,7 @@ function finish(){
   $("#wBody").innerHTML="<b>"+st.moves+"</b> moves &nbsp;·&nbsp; par <b>"+lv.par+"</b>"+
                         note+earnedNote+cleanNote+nextUp;
   $("#wNext").style.display=(custom||last)?"none":"";
-  setTimeout(()=>$("#win").classList.add("on"),260);
+  setTimeout(()=>showOverlay("win"),260);
   render();
 }
 
@@ -2029,7 +2048,7 @@ function lose(reason){
   const [t,b]=FAILS[reason];
   $("#lTitle").textContent=t;
   $("#lBody").textContent=b+(DIFFS[diff].preview?" Watch the red cells.":"");
-  setTimeout(()=>$("#lose").classList.add("on"),240);
+  setTimeout(()=>showOverlay("lose"),240);
 }
 
 function undo(){
@@ -2046,14 +2065,71 @@ function undo(){
 /* ---------------- input ---------------- */
 const KEYS={ArrowUp:0,w:0,W:0,ArrowRight:1,d:1,D:1,
             ArrowDown:2,s:2,S:2,ArrowLeft:3,a:3,A:3};
+
+/* ---- panels are driveable from the keyboard, same keys as the game ----
+   Real DOM focus is used rather than a bespoke cursor, so Enter and Space
+   activate natively and the panels stay usable with a screen reader. */
+const OVERLAY_IDS=["title","editor","importer","diff","win","lose"];
+const openOverlay = () => OVERLAY_IDS.map(id=>$("#"+id))
+  .filter(el=>el.classList.contains("on")).pop() || null;
+const overlayButtons = ov =>
+  [...ov.querySelectorAll("button")].filter(b=>!b.disabled&&!b.hidden&&
+    !(b.offsetParent===null&&b.getBoundingClientRect().height===0));
+
+/** Put the cursor on the obvious choice: the primary action, else the first. */
+function focusOverlay(ov){
+  if(!ov||!ov.querySelectorAll) return;
+  setTimeout(()=>{
+    const bs=overlayButtons(ov);
+    if(!bs.length) return;
+    (bs.find(b=>b.classList.contains("primary"))||bs[0]).focus();
+  },30);
+}
+function showOverlay(id){
+  const ov=$("#"+id);
+  ov.classList.add("on");
+  focusOverlay(ov);
+}
+function moveFocus(ov,step){
+  const bs=overlayButtons(ov);
+  if(!bs.length) return;
+  const i=bs.indexOf(document.activeElement);
+  bs[(( (i<0?0:i+step) %bs.length)+bs.length)%bs.length].focus();
+}
 addEventListener("keydown",e=>{
   if(e.ctrlKey||e.metaKey||e.altKey) return;
-  if($("#title").classList.contains("on")){ e.preventDefault(); closeTitle(); return; }
-  if($("#diff").classList.contains("on")) return;
-  // never let a keystroke reach the board while a panel is up — typing a
-  // level name would otherwise drive the dozer around behind it
-  if($("#editor").classList.contains("on")) return;
-  if($("#importer").classList.contains("on")) return;
+
+  // A panel is up: drive it, and never let the keystroke reach the board —
+  // typing a level name would otherwise steer the dozer around behind it.
+  const ov=openOverlay();
+  if(ov){
+    const tag=(document.activeElement&&document.activeElement.tagName)||"";
+    const typing=(tag==="INPUT"||tag==="TEXTAREA");
+    if(e.key==="Escape"){
+      e.preventDefault();
+      if(ov.id==="title") closeTitle();
+      else if(ov.id==="editor"||ov.id==="importer") ov.classList.remove("on");
+      else if(ov.id==="diff"&&localStorage.getItem(SAVE_KEY+".diff"))
+        ov.classList.remove("on");
+      return;
+    }
+    if(typing) return;                       // let people actually type
+    if(ov.id==="title"){ e.preventDefault(); closeTitle(); return; }
+    if(e.key in KEYS){
+      e.preventDefault();
+      moveFocus(ov, KEYS[e.key]===1||KEYS[e.key]===2 ? 1 : -1);
+      return;
+    }
+    if(e.key==="Enter"||e.key===" "){
+      // a focused button handles these itself; only step in when nothing is
+      if(!overlayButtons(ov).includes(document.activeElement)){
+        e.preventDefault();
+        focusOverlay(ov);
+      }
+      return;
+    }
+    return;
+  }
   if(e.key in KEYS){ e.preventDefault(); doMove(KEYS[e.key]); return; }
   if(e.key===" "||e.key==="."){ e.preventDefault(); doMove(WAIT); }
   else if(e.key==="z"||e.key==="Z"||e.key==="u"||e.key==="U"){ e.preventDefault(); undo(); }
@@ -2073,7 +2149,7 @@ $("#wReplay").onclick=restart;
 $("#wNext").onclick=()=>loadLevel(idx+1);
 $("#lUndo").onclick=undo;
 $("#lReset").onclick=restart;
-$("#diffTag").onclick=()=>$("#diff").classList.add("on");
+$("#diffTag").onclick=()=>showOverlay("diff");
 $("#bHint").onclick=showHint;
 
 /* ---- editor wiring ---- */
@@ -2087,7 +2163,7 @@ $("#bEdit").onclick=()=>{
   edStatus("Draw a site. One dozer, at least one hole, up to three loads.");
   $("#edPlay").disabled=true;
   $("#edCode").hidden=true; $("#edCopy").hidden=true;
-  $("#editor").classList.add("on");
+  showOverlay("editor");
 };
 $("#edClose").onclick=()=>$("#editor").classList.remove("on");
 $("#impClose").onclick=()=>$("#importer").classList.remove("on");
@@ -2095,7 +2171,7 @@ $("#bImport").onclick=()=>{
   $("#impText").value="";
   $("#impStatus").textContent="";
   $("#impStatus").className="";
-  $("#importer").classList.add("on");
+  showOverlay("importer");
 };
 
 document.querySelectorAll("#edTools button").forEach(b=>{
@@ -2324,7 +2400,7 @@ function closeTitle(){
   if(!t.classList.contains("on")) return;
   clearInterval(titleTimer); titleTimer=null;
   t.classList.remove("on");
-  if(!localStorage.getItem(SAVE_KEY+".diff")) $("#diff").classList.add("on");
+  if(!localStorage.getItem(SAVE_KEY+".diff")) showOverlay("diff");
   if(lv){ fitCell(); render(); }
 }
 $("#tStart").onclick=closeTitle;
@@ -2346,6 +2422,7 @@ loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just start
 setDrawer(window.innerWidth>=760);         // phones start with the board in view
 buildTitle();
 runTitle();                                // the shift picker follows the title
+focusOverlay($("#title"));                 // Enter starts without reaching for a mouse
 
 /* ============================================================
    Self test
@@ -2554,6 +2631,24 @@ async function selfTest(){
      !verifyDef({name:"x",par:0,
        rows:["#########","#@$$$$  #","#o o o o#","#########"]}).ok,
      "guards the promise that a published par is real");
+
+  // 6e. animation must get out of the way when input outruns it, or the
+  //     sprite trails behind cells and freezes mid-rotation
+  loadLevel(0);
+  lastMoveAt=(typeof performance!=="undefined"?performance.now():Date.now());
+  doMove(1);
+  ok("moves faster than the animation stop animating",
+     boardEl.classList.contains("snap"));
+  lastMoveAt=(typeof performance!=="undefined"?performance.now():Date.now())-800;
+  doMove(1);
+  ok("a deliberate move animates again", !boardEl.classList.contains("snap"));
+
+  // 6f. an open panel must be detected, or keystrokes reach the board behind it
+  closeAllOverlays();
+  ok("no panel open means the board has the keyboard", openOverlay()===null);
+  $("#editor").classList.add("on");
+  ok("an open panel takes the keyboard", openOverlay()===$("#editor"));
+  closeAllOverlays();
 
   // 7. the picker is patched, not rebuilt
   loadLevel(0);

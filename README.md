@@ -100,6 +100,12 @@ level is proved solvable on all three rather than assumed safe on the easy one.
 | Next level (after a win) | `Enter`       |
 | Change shift | click the shift name in the header |
 
+Panels are driveable from the keyboard with the same keys as the game: arrows
+or `WASD` move between buttons, `Enter` or `Space` activates, `Escape` closes.
+Opening a panel puts the cursor on its obvious action — Start, Next Level, the
+primary button — so you never reach for the mouse mid-run. Typing in a text
+field is left alone, and no keystroke reaches the board while a panel is up.
+
 On touch screens, swipe the board to drive, tap to wait, or use the on-screen pad.
 
 Everything not needed mid-move — level picker, random/daily buttons, legend,
