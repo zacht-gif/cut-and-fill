@@ -406,11 +406,9 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <h1>Cut &amp; <span>Fill</span></h1>
   <div class="sub">
     <span id="levelName">Level 1</span> &nbsp;
-    <span id="sStars">★ 0/72</span> &nbsp;
-    <span id="touchTag" hidden>Pad</span>
-    <span id="soundTag">♪ on</span>
-    <span id="hapticTag" hidden>Buzz on</span>
-    <span id="diffTag">Operator</span>
+    <span id="sStars">★ 0/75</span> &nbsp;
+    <span id="shiftNow">Operator</span>
+    <button id="gearTag">⚙ Settings</button>
   </div>
 </header>
 
@@ -421,6 +419,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div class="stat"><b id="sHoles">0/0</b><i>Filled</i></div>
   <div class="stat" id="stDirt"><b id="sDirt">0</b><i>Dirt left</i></div>
   <div class="stat hide" id="stTempo"><b id="sTempo">1×</b><i>Tempo</i></div>
+  <div class="stat hide" id="stTime"><b id="sTime">0.00s</b><i>Time</i></div>
 </div>
 
 <div class="banner" id="banner"></div>
@@ -502,6 +501,25 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div class="row">
     <button class="primary" id="lUndo">↶ Undo That</button>
     <button id="lReset">⟳ Restart</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="settings"><div class="card">
+  <h2>Settings</h2>
+  <div class="setrow"><span>Sound</span><button id="soundTag">♪ on</button></div>
+  <div class="setrow" id="setHaptic"><span>Vibration</span>
+    <button id="hapticTag">Buzz on</button></div>
+  <div class="setrow" id="setTouch"><span>Touch controls</span>
+    <button id="touchTag">Pad</button></div>
+  <div class="setrow"><span>Shift</span><button id="diffTag">Operator</button></div>
+  <div class="setrow" id="setTimeTrial"><span>Time Trial</span>
+    <button id="timeTrialTag">Off</button></div>
+  <p class="tline">Tap a value to change it. The shift decides how traffic
+    behaves and whether the red warning cells are shown. Time Trial mode
+    tracks your speed on each level.</p>
+  <div class="row">
+    <button id="setReset">Reset progress</button>
+    <button class="primary" id="setClose">Done</button>
   </div>
 </div></div>
 
@@ -888,21 +906,24 @@ let usedHint=false, usedUndo=false;      // per-run, for the unaided objective
 let pileEls=[], vehEls=[], cellEls=[], dozerEl=null, rotEl=null, hintEl=null, lastVeh=[];
 let SV=load();
 let best=SV.best;
+let startTime=null, timerInterval=null;  // for time trial mode
 
 function load(){
   let raw={};
   try{ raw=JSON.parse(localStorage.getItem(SAVE_KEY))||{}; }catch(e){}
-  const best={}, clean={};
+  const best={}, clean={}, times={};
   for(const k of DIFF_ORDER){
     best[k]=(raw.best&&raw.best[k])||{};
     clean[k]=(raw.clean&&raw.clean[k])||{};
+    times[k]=(raw.times&&raw.times[k])||{};
   }
-  return {best, clean,
+  return {best, clean, times,
           hints: Number.isInteger(raw.hints)?raw.hints:START_HINTS,
           awarded: raw.awarded||{},
           haptics: raw.haptics!==false,
           sound: raw.sound!==false,
-          touch: raw.touch==="swipe"?"swipe":"pad"};
+          touch: raw.touch==="swipe"?"swipe":"pad",
+          timeTrial: raw.timeTrial===true};
 }
 
 /**
@@ -1005,6 +1026,17 @@ function save(){
  */
 const bestSlot = () => custom ? custom.key : LEVELS[idx].name;
 const bestHere = () => { const k=bestSlot(); return k==null?undefined:best[diff][k]; };
+
+const getElapsedTime = () => {
+  if(!startTime) return 0;
+  const now=typeof performance!=="undefined"?performance.now():Date.now();
+  return (now-startTime)/1000;
+};
+const bestTimeHere = () => {
+  if(!SV.timeTrial) return null;
+  const k=bestSlot();
+  return k==null?undefined:SV.times[diff][k];
+};
 
 /* Stars are derived from your best move count, never stored separately —
    three for par or better, two within a quarter over, one for finishing. */
@@ -1822,6 +1854,15 @@ function render(){
     $("#stTempo").classList.toggle("hot",tier>0);
   }
 
+  const timeOn=SV.timeTrial;
+  $("#stTime").classList.toggle("hide",!timeOn);
+  if(timeOn){
+    const elapsed=getElapsedTime();
+    $("#sTime").textContent=elapsed.toFixed(2)+"s";
+    const best=bestTimeHere();
+    if(best) $("#sBest").textContent=best.toFixed(2)+"s";
+  }
+
   // objectives: done / still possible / lost for this run
   const setOb=(n,state)=>{
     const el=$("#ob"+n);
@@ -1895,6 +1936,9 @@ const FAILS={
 };
 
 function startLevel(def,label){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval=null;
+  startTime=null;
   lv=parse(def,diff);
   st=freshState();
   past=[]; won=false; failed=null; hint=null;
@@ -1930,6 +1974,11 @@ function setDiff(d){
 let lastMoveAt=0;
 function doMove(dir){
   if(won||failed) return;
+  // Start timer on first move in time trial mode
+  if(SV.timeTrial && !startTime){
+    startTime=typeof performance!=="undefined"?performance.now():Date.now();
+    timerInterval=setInterval(render, 50);
+  }
   // Time the animation to how fast moves are actually arriving: slow enough to
   // read when you tap, short enough to finish when you hold. Only a burst
   // faster than any animation could show (test loops, key spam) snaps.
@@ -1969,6 +2018,7 @@ function doMove(dir){
 }
 
 function finish(){
+  if(timerInterval) clearInterval(timerInterval);
   won=true;
   const slot=bestSlot(), prev=bestHere();
   const isBest=prev==null||st.moves<prev;
@@ -1976,6 +2026,14 @@ function finish(){
   if(slot!=null){
     if(isBest) best[diff][slot]=st.moves;
     if(unaided) SV.clean[diff][slot]=true;
+  }
+  // record time if in time trial mode
+  if(slot!=null && SV.timeTrial && startTime){
+    const elapsed=getElapsedTime();
+    const prevTime=bestTimeHere();
+    if(prevTime==null || elapsed<prevTime){
+      SV.times[diff][slot]=elapsed;
+    }
   }
   // hitting par pays for the next hint — earned once per site, per shift
   let earned=false;
@@ -2060,6 +2118,7 @@ function showHint(){
 }
 
 function lose(reason){
+  if(timerInterval) clearInterval(timerInterval);
   const [t,b]=FAILS[reason];
   $("#lTitle").textContent=t;
   $("#lBody").textContent=b+(DIFFS[diff].preview?" Watch the red cells.":"");
@@ -2074,6 +2133,9 @@ function undo(){
   $("#win").classList.remove("on");
   $("#lose").classList.remove("on");
   lastVeh=lv.vehicles.map(()=>null);
+  if(SV.timeTrial && startTime && !timerInterval){
+    timerInterval=setInterval(render, 50);
+  }
   render();
 }
 
@@ -2113,7 +2175,7 @@ addEventListener("blur",releaseAll);        // alt-tab must not leave it driving
 /* ---- panels are driveable from the keyboard, same keys as the game ----
    Real DOM focus is used rather than a bespoke cursor, so Enter and Space
    activate natively and the panels stay usable with a screen reader. */
-const OVERLAY_IDS=["title","editor","importer","diff","win","lose"];
+const OVERLAY_IDS=["title","editor","importer","diff","settings","win","lose"];
 const openOverlay = () => OVERLAY_IDS.map(id=>$("#"+id))
   .filter(el=>el.classList.contains("on")).pop() || null;
 const overlayButtons = ov =>
@@ -2152,7 +2214,7 @@ addEventListener("keydown",e=>{
     if(e.key==="Escape"){
       e.preventDefault();
       if(ov.id==="title") closeTitle();
-      else if(ov.id==="editor"||ov.id==="importer") ov.classList.remove("on");
+      else if(ov.id==="editor"||ov.id==="importer"||ov.id==="settings") ov.classList.remove("on");
       else if(ov.id==="diff"&&localStorage.getItem(SAVE_KEY+".diff"))
         ov.classList.remove("on");
       return;
@@ -2194,11 +2256,22 @@ $("#wNext").onclick=()=>loadLevel(idx+1);
 $("#lUndo").onclick=undo;
 $("#lReset").onclick=restart;
 $("#diffTag").onclick=()=>showOverlay("diff");
+$("#gearTag").onclick=()=>showOverlay("settings");
+$("#setClose").onclick=()=>$("#settings").classList.remove("on");
+$("#setReset").onclick=()=>{
+  if(confirm("Clear all progress on all shifts?")){
+    for(const d of DIFF_ORDER){ best[d]={}; SV.clean[d]={}; SV.times[d]={}; }
+    SV.hints=START_HINTS; SV.awarded={};
+    save();
+    loadLevel(0);
+    closeAllOverlays();
+  }
+};
 $("#bHint").onclick=showHint;
 
 /* ---- editor wiring ---- */
 function closeAllOverlays(){
-  ["editor","importer","diff","win","lose"].forEach(id=>
+  ["editor","importer","diff","settings","win","lose"].forEach(id=>
     $("#"+id).classList.remove("on"));
 }
 $("#bEdit").onclick=()=>{
@@ -2352,6 +2425,19 @@ $("#soundTag").onclick=()=>{
   playSound("fill");            // and by ear
 };
 paintSound();
+
+function paintTimeTrial(){
+  const t=$("#timeTrialTag");
+  t.textContent=SV.timeTrial?"On":"Off";
+  t.classList.toggle("off",!SV.timeTrial);
+}
+$("#timeTrialTag").onclick=()=>{
+  SV.timeTrial=!SV.timeTrial;
+  save();
+  paintTimeTrial();
+  if(lv){ render(); }
+};
+paintTimeTrial();
 
 let generating=false;
 async function newSite(tier, seed, label, key){
@@ -2608,7 +2694,8 @@ async function selfTest(){
 
   // 6b. the hint economy
   SV.hints=0; SV.awarded={}; SV.best={apprentice:{},operator:{},foreman:{}};
-  SV.clean={apprentice:{},operator:{},foreman:{}}; best=SV.best;
+  SV.clean={apprentice:{},operator:{},foreman:{}}; SV.times={apprentice:{},operator:{},foreman:{}};
+  best=SV.best;
   loadLevel(0);
   showHint();
   ok("a hint is refused when the stock is empty", hint===null&&SV.hints===0);
@@ -2647,7 +2734,8 @@ async function selfTest(){
 
   SV.hints=START_HINTS; SV.awarded={};
   SV.best={apprentice:{},operator:{},foreman:{}};
-  SV.clean={apprentice:{},operator:{},foreman:{}}; best=SV.best;
+  SV.clean={apprentice:{},operator:{},foreman:{}}; SV.times={apprentice:{},operator:{},foreman:{}};
+  best=SV.best;
 
   // 6c. each kind of turn asks for the sound that matches it. Checks the
   //     mapping rather than the synth, so it runs headlessly where there is
