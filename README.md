@@ -216,6 +216,45 @@ finding out at the end.
 Undoing when there's nothing to undo doesn't count against the unaided
 objective. Undoing nothing isn't assistance.
 
+## Level editor and sharing
+
+**Level Editor** in the drawer. Draw with the tool palette, name it, and hit
+**Verify & Publish**.
+
+Nothing publishes without passing the solver first. A site is only accepted once
+it's been *proved* finishable, and its par is the **proven optimum** — not a
+number the author guessed. That's the part most level editors can't offer, and
+it's only possible because the solver runs in the browser alongside the game.
+
+The editor refuses, with a reason, anything that:
+
+- has no dozer, or more than one
+- has no holes, or fewer loads than holes
+- can't be finished — every route strands a load
+- uses more than **three loads**, which is where in-browser verification stops
+  being certain (measured: 19/19 sites up to three loads verify, slowest 158ms;
+  at four it's roughly one in five)
+
+That last cap is deliberate. A par that might be wrong is worse than no par, so
+the editor only promises what it can prove.
+
+### Sharing needs no server
+
+A site is a few rows of ASCII, so its share code is just that text in base64url
+— a small level is about 50 characters, a large one under 200. Copy the code
+into a message; anyone pastes it into **Import Code** and plays it.
+
+No backend, no accounts, no hosting bill, and the game keeps making zero network
+requests.
+
+An imported par is **re-derived locally**, never trusted from the code. Someone
+hand-editing a code to claim a fake par gets corrected on import, and a code
+that doesn't decode cleanly is rejected outright rather than half-read.
+
+Your own and imported sites are listed under the editor, with best scores kept
+per site — keyed by a hash of the code, so the same site shares a score whoever
+you got it from.
+
 ## Hints
 
 `H` or the Hint button works out a way forward from wherever you are — not just

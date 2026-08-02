@@ -299,6 +299,34 @@ body.ads .adslot{display:flex}
   text-shadow:0 0 16px rgba(255,174,26,.55);animation:pop .35s ease-out}
 .togo{display:inline-block;margin-top:6px;color:var(--accent);opacity:.85}
 
+/* ---- level editor ---- */
+#edCard{max-width:520px}
+.edtools,.edsize{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:10px}
+.edtools button,.edsize button{padding:6px 10px;font-size:10px}
+.edtools button.on{border-color:var(--dozer);color:var(--dozer)}
+#edGrid{position:relative;display:grid;--cell:26px;width:max-content;
+  grid-auto-rows:var(--cell);gap:2px;margin:0 auto 12px;
+  touch-action:none;cursor:crosshair}
+#edGrid .c{cursor:crosshair}
+#edGrid .c.edge{opacity:.75;cursor:not-allowed}
+#edName,#impText,#edCodeText{width:100%;background:#0b141a;color:var(--ink);
+  border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+  font:inherit;font-size:12px;margin-bottom:10px;resize:none}
+#edName:focus,#impText:focus{outline:none;border-color:var(--accent)}
+#edStatus,#impStatus{font-size:11px;color:var(--ink-dim);margin-bottom:12px;
+  min-height:15px;line-height:1.5}
+#edStatus.bad,#impStatus.bad{color:var(--hole-edge)}
+#edStatus.good,#impStatus.good{color:var(--accent)}
+#edCodeText{font-size:10px;letter-spacing:.02em;word-break:break-all}
+#community{display:flex;flex-direction:column;gap:5px;width:100%;max-width:820px}
+.cm{display:flex;align-items:center;gap:10px;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:7px 11px;font-size:12px}
+.cm b{color:#eaf4f9;font-weight:600;flex:1;text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cm small{color:var(--ink-dim);font-size:10px}
+.cm button{padding:5px 9px;font-size:10px}
+
 /* ---- title screen ---- */
 .titlecard{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   padding:30px 34px 26px;text-align:center;max-width:420px;width:100%;
@@ -413,6 +441,12 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 
   <div id="levels"></div>
 
+  <div class="row">
+    <button id="bEdit">✎ Level Editor</button>
+    <button id="bImport">⇩ Import Code</button>
+  </div>
+  <div id="community"></div>
+
   <div class="legend">
     <span><i class="sw h"></i>hole — fill it</span>
     <span><i class="sw d"></i>dirt — consumed on use</span>
@@ -447,6 +481,44 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div class="row">
     <button class="primary" id="lUndo">↶ Undo That</button>
     <button id="lReset">⟳ Restart</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="editor"><div class="card" id="edCard">
+  <h2>Level Editor</h2>
+  <div class="edtools" id="edTools">
+    <button data-t="#" class="on">Wall</button>
+    <button data-t=" ">Ground</button>
+    <button data-t="o">Hole</button>
+    <button data-t="$">Dirt</button>
+    <button data-t="~">Soft</button>
+    <button data-t="@">Dozer</button>
+  </div>
+  <div id="edGrid"></div>
+  <div class="edsize">
+    <button data-sz="w-1">– wide</button><button data-sz="w1">+ wide</button>
+    <button data-sz="h-1">– tall</button><button data-sz="h1">+ tall</button>
+    <button data-sz="clear">Clear</button>
+  </div>
+  <input id="edName" maxlength="28" placeholder="Name your site" autocomplete="off">
+  <div id="edStatus">Draw a site. One dozer, at least one hole, up to three loads.</div>
+  <div id="edCode" hidden><textarea id="edCodeText" readonly rows="3"></textarea></div>
+  <div class="row">
+    <button class="primary" id="edVerify">Verify &amp; Publish</button>
+    <button id="edPlay" disabled>Play</button>
+    <button id="edCopy" hidden>Copy code</button>
+    <button id="edClose">Close</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="importer"><div class="card">
+  <h2>Import a Site</h2>
+  <p>Paste a share code someone sent you.</p>
+  <textarea id="impText" rows="4" placeholder="CF1..."></textarea>
+  <div id="impStatus"></div>
+  <div class="row">
+    <button class="primary" id="impGo">Import</button>
+    <button id="impClose">Cancel</button>
   </div>
 </div></div>
 
@@ -1378,6 +1450,201 @@ const todaySeed=()=>{
   return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
 };
 
+/* ============================================================
+   Level editor and sharing
+
+   A site is a few rows of ASCII, so a share code is just that text in
+   base64url — no server, no accounts, no hosting. Paste a code, get the
+   level.
+
+   What makes the codes worth trusting is that nothing publishes without
+   passing the solver first. A community level always comes with a proof it
+   can be finished and a par that is a genuine optimum, which is the part
+   most level editors can't promise.
+   ============================================================ */
+const CODE_TAG="CF1";
+const MAX_EDIT_DIRT=3;          // above this the browser solver stops being certain
+
+const b64=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s)))
+              .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64=s=>new TextDecoder().decode(
+  Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0)));
+
+function encodeLevel(def){
+  return CODE_TAG+b64([def.name.replace(/[|/]/g,""),def.par,
+                       def.rows.join("/")].join("|"));
+}
+function decodeLevel(code){
+  try{
+    const body=String(code).trim().replace(/\s+/g,"");
+    if(!body.startsWith(CODE_TAG)) return null;
+    const [name,par,grid]=unb64(body.slice(CODE_TAG.length)).split("|");
+    const rows=grid.split("/");
+    if(!rows.length||!rows[0]) return null;
+    const w=rows[0].length;
+    if(rows.some(r=>r.length!==w)) return null;      // ragged: not ours
+    return {name:name||"Shared Site", par:parseInt(par,10)||0, rows};
+  }catch(e){ return null; }
+}
+const codeKey=s=>{
+  let h=5381;
+  for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0;
+  return "cm:"+(h>>>0).toString(36);
+};
+
+/** Structural checks, then the solver. Returns {ok, par, why}. */
+function verifyDef(def){
+  const flat=def.rows.join("");
+  const dozer=(flat.match(/@/g)||[]).length;
+  const holes=(flat.match(/o/g)||[]).length;
+  const dirt=(flat.match(/\$/g)||[]).length;
+  if(dozer!==1) return {ok:false, why:"Place exactly one dozer."};
+  if(!holes)    return {ok:false, why:"Add at least one hole."};
+  if(dirt<holes)return {ok:false, why:`Only ${dirt} load${dirt===1?"":"s"} for `+
+                                      `${holes} holes — add more dirt.`};
+  if(dirt>MAX_EDIT_DIRT)
+    return {ok:false, why:`${dirt} loads is more than the checker can verify `+
+                          `for certain. Keep it to ${MAX_EDIT_DIRT}.`};
+  let r;
+  try{ r=solveDef(def,"operator",300000); }
+  catch(e){ return {ok:false, why:"The site couldn't be read — check the walls."}; }
+  if(r.path===null && r.exhausted)
+    return {ok:false, why:"This site can't be finished. Every route strands a load."};
+  if(r.path===null)
+    return {ok:false, why:"Too tangled to verify. Try a smaller site or fewer loads."};
+  return {ok:true, par:r.path.length};
+}
+
+/* ---- the player's own library, kept beside their save ---- */
+function libLoad(){
+  try{ return JSON.parse(localStorage.getItem(SAVE_KEY+".sites"))||[]; }
+  catch(e){ return []; }
+}
+function libSave(list){
+  try{ localStorage.setItem(SAVE_KEY+".sites",JSON.stringify(list.slice(0,60))); }
+  catch(e){}
+}
+function libAdd(entry){
+  const list=libLoad();
+  if(list.some(x=>x.code===entry.code)) return false;   // already have it
+  list.unshift(entry);
+  libSave(list);
+  renderCommunity();
+  return true;
+}
+
+function renderCommunity(){
+  const wrap=$("#community");
+  if(!wrap||!wrap.appendChild) return;
+  const list=libLoad();
+  wrap.innerHTML="";
+  if(!list.length){
+    const d=document.createElement("div");
+    d.className="cm";
+    d.innerHTML="<small>No community sites yet — build one, or import a code.</small>";
+    wrap.appendChild(d);
+    return;
+  }
+  list.forEach((e,i)=>{
+    const key=codeKey(e.code), bb=best[diff][key];
+    const d=document.createElement("div");
+    d.className="cm";
+    d.innerHTML="<b></b><small></small>";
+    d.querySelector("b").textContent=e.name;
+    d.querySelector("small").textContent=
+      "par "+e.par+(bb!=null?" · best "+bb:"")+(e.mine?" · yours":"");
+    const play=document.createElement("button");
+    play.textContent="Play";
+    play.onclick=()=>{ closeAllOverlays();
+                       loadCustom({name:e.name,par:e.par,rows:e.rows},
+                                  "Community — "+e.name, key); };
+    const share=document.createElement("button");
+    share.textContent="Code";
+    share.onclick=()=>copyText(e.code,share);
+    const del=document.createElement("button");
+    del.textContent="✕";
+    del.onclick=()=>{ const l=libLoad(); l.splice(i,1); libSave(l); renderCommunity(); };
+    d.append(play,share,del);
+    wrap.appendChild(d);
+  });
+}
+
+function copyText(text,btn){
+  const done=()=>{ if(btn){ const t=btn.textContent; btn.textContent="Copied";
+                            setTimeout(()=>btn.textContent=t,1200); } };
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(text).then(done,()=>{});
+  else done();
+}
+
+/* ---- the editing surface ---- */
+let ed=null;
+function edNew(w,h){
+  const grid=[];
+  for(let r=0;r<h;r++){
+    grid[r]=[];
+    for(let c=0;c<w;c++)
+      grid[r][c]=(r===0||c===0||r===h-1||c===w-1)?"#":" ";
+  }
+  return {w,h,grid,tool:"#"};
+}
+function edRows(){ return ed.grid.map(r=>r.join("")); }
+function edDef(){ return {name:($("#edName").value||"Untitled Site").trim(),
+                          par:0, rows:edRows()}; }
+
+function edRender(){
+  const g=$("#edGrid");
+  if(!g||!g.appendChild) return;
+  g.style.setProperty("grid-template-columns","repeat("+ed.w+",var(--cell))");
+  g.innerHTML="";
+  for(let r=0;r<ed.h;r++)
+    for(let c=0;c<ed.w;c++){
+      const ch=ed.grid[r][c], edge=(r===0||c===0||r===ed.h-1||c===ed.w-1);
+      const d=document.createElement("div");
+      d.className="c "+(ch==="#"?"wall":ch==="o"?"hole":ch==="~"?"marsh":"ground")
+                 +(edge?" edge":"");
+      d.innerHTML='<i class="mk"></i>';
+      if(ch==="$"||ch==="@"){
+        const e=document.createElement("div");
+        e.className="ent "+(ch==="$"?"pile":"dozer");
+        e.style.position="absolute"; e.style.inset="0"; e.style.transform="none";
+        e.innerHTML=ch==="$"?'<div class="body"></div>'
+                            :'<div class="rot"><div class="hull"></div>'+
+                             '<div class="cab"></div><div class="blade"></div></div>';
+        d.appendChild(e);
+      }
+      if(!edge){ d.dataset.r=r; d.dataset.c=c; }
+      g.appendChild(d);
+    }
+}
+function edPaint(r,c){
+  if(r<=0||c<=0||r>=ed.h-1||c>=ed.w-1) return;      // the boundary stays solid
+  const t=ed.tool;
+  if(t==="@")                                        // only ever one dozer
+    for(let y=0;y<ed.h;y++) for(let x=0;x<ed.w;x++)
+      if(ed.grid[y][x]==="@") ed.grid[y][x]=" ";
+  ed.grid[r][c]=t;
+  edRender();
+  edStatus("Draw a site. One dozer, at least one hole, up to three loads.");
+  $("#edPlay").disabled=true;
+  $("#edCode").hidden=true; $("#edCopy").hidden=true;
+}
+function edStatus(msg,kind){
+  const s=$("#edStatus");
+  s.textContent=msg;
+  s.classList.toggle("bad",kind==="bad");
+  s.classList.toggle("good",kind==="good");
+}
+function edResize(dw,dh){
+  const w=Math.max(7,Math.min(12,ed.w+dw)), h=Math.max(5,Math.min(9,ed.h+dh));
+  const next=edNew(w,h);
+  for(let r=1;r<Math.min(h,ed.h)-1;r++)
+    for(let c=1;c<Math.min(w,ed.w)-1;c++) next.grid[r][c]=ed.grid[r][c];
+  next.tool=ed.tool;
+  ed=next;
+  edRender();
+}
+
 /* ---------------- rendering ---------------- */
 function buildBoard(){
   boardEl.innerHTML="";
@@ -1783,6 +2050,10 @@ addEventListener("keydown",e=>{
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   if($("#title").classList.contains("on")){ e.preventDefault(); closeTitle(); return; }
   if($("#diff").classList.contains("on")) return;
+  // never let a keystroke reach the board while a panel is up — typing a
+  // level name would otherwise drive the dozer around behind it
+  if($("#editor").classList.contains("on")) return;
+  if($("#importer").classList.contains("on")) return;
   if(e.key in KEYS){ e.preventDefault(); doMove(KEYS[e.key]); return; }
   if(e.key===" "||e.key==="."){ e.preventDefault(); doMove(WAIT); }
   else if(e.key==="z"||e.key==="Z"||e.key==="u"||e.key==="U"){ e.preventDefault(); undo(); }
@@ -1804,6 +2075,116 @@ $("#lUndo").onclick=undo;
 $("#lReset").onclick=restart;
 $("#diffTag").onclick=()=>$("#diff").classList.add("on");
 $("#bHint").onclick=showHint;
+
+/* ---- editor wiring ---- */
+function closeAllOverlays(){
+  ["editor","importer","diff","win","lose"].forEach(id=>
+    $("#"+id).classList.remove("on"));
+}
+$("#bEdit").onclick=()=>{
+  if(!ed) ed=edNew(9,7);
+  edRender();
+  edStatus("Draw a site. One dozer, at least one hole, up to three loads.");
+  $("#edPlay").disabled=true;
+  $("#edCode").hidden=true; $("#edCopy").hidden=true;
+  $("#editor").classList.add("on");
+};
+$("#edClose").onclick=()=>$("#editor").classList.remove("on");
+$("#impClose").onclick=()=>$("#importer").classList.remove("on");
+$("#bImport").onclick=()=>{
+  $("#impText").value="";
+  $("#impStatus").textContent="";
+  $("#impStatus").className="";
+  $("#importer").classList.add("on");
+};
+
+document.querySelectorAll("#edTools button").forEach(b=>{
+  b.onclick=()=>{
+    ed.tool=b.dataset.t;
+    document.querySelectorAll("#edTools button").forEach(x=>
+      x.classList.toggle("on",x===b));
+  };
+});
+document.querySelectorAll(".edsize button").forEach(b=>{
+  b.onclick=()=>{
+    const s=b.dataset.sz;
+    if(s==="clear"){ ed=edNew(ed.w,ed.h); edRender(); return; }
+    edResize(s[0]==="w"?parseInt(s.slice(1),10):0,
+             s[0]==="h"?parseInt(s.slice(1),10):0);
+  };
+});
+
+// click, or drag across cells to paint a run of them
+let painting=false;
+const edCellFrom=e=>{
+  const t=(e.touches?document.elementFromPoint(
+             e.touches[0].clientX,e.touches[0].clientY):e.target);
+  return t&&t.dataset&&t.dataset.r!==undefined?t:null;
+};
+$("#edGrid").addEventListener("pointerdown",e=>{
+  const t=edCellFrom(e);
+  if(!t) return;
+  painting=true;
+  edPaint(+t.dataset.r,+t.dataset.c);
+  e.preventDefault();
+});
+$("#edGrid").addEventListener("pointermove",e=>{
+  if(!painting) return;
+  const t=document.elementFromPoint(e.clientX,e.clientY);
+  if(t&&t.dataset&&t.dataset.r!==undefined)
+    edPaint(+t.dataset.r,+t.dataset.c);
+});
+addEventListener("pointerup",()=>{ painting=false; });
+
+let edVerified=null;
+$("#edVerify").onclick=()=>{
+  const def=edDef();
+  edStatus("Checking…");
+  setTimeout(()=>{
+    const v=verifyDef(def);
+    if(!v.ok){ edVerified=null; $("#edPlay").disabled=true;
+               $("#edCode").hidden=true; $("#edCopy").hidden=true;
+               edStatus(v.why,"bad"); return; }
+    def.par=v.par;
+    const code=encodeLevel(def);
+    edVerified={def,code};
+    libAdd({name:def.name, par:def.par, rows:def.rows, code, mine:true});
+    $("#edCodeText").value=code;
+    $("#edCode").hidden=false;
+    $("#edCopy").hidden=false;
+    $("#edPlay").disabled=false;
+    edStatus("Verified — finishable in "+v.par+" moves, and that is the optimum. "+
+             "Saved to your sites; share the code below.","good");
+  },0);
+};
+$("#edCopy").onclick=()=>{ if(edVerified) copyText(edVerified.code,$("#edCopy")); };
+$("#edPlay").onclick=()=>{
+  if(!edVerified) return;
+  closeAllOverlays();
+  loadCustom(edVerified.def,"Your Site — "+edVerified.def.name,
+             codeKey(edVerified.code));
+};
+
+$("#impGo").onclick=()=>{
+  const s=$("#impStatus");
+  const def=decodeLevel($("#impText").value);
+  if(!def){ s.textContent="That code isn't readable. Copy the whole thing.";
+            s.className="bad"; return; }
+  s.textContent="Checking…"; s.className="";
+  setTimeout(()=>{
+    // never trust a par that arrived in a code — re-derive it here
+    const v=verifyDef(def);
+    if(!v.ok){ s.textContent="Imported site is not playable: "+v.why;
+               s.className="bad"; return; }
+    def.par=v.par;
+    const code=encodeLevel(def);
+    libAdd({name:def.name, par:def.par, rows:def.rows, code, mine:false});
+    s.textContent="Imported \""+def.name+"\" — par "+v.par+".";
+    s.className="good";
+    closeAllOverlays();
+    loadCustom(def,"Community — "+def.name,codeKey(code));
+  },0);
+};
 
 // only offer the toggle where vibration actually exists (Android, not iOS)
 function paintHaptics(){
@@ -1958,6 +2339,7 @@ function setDrawer(open){
 $("#drawerToggle").onclick=()=>setDrawer(drawerEl.classList.contains("closed"));
 
 buildPicker();
+renderCommunity();
 const lastName=localStorage.getItem(SAVE_KEY+".last");
 const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
 loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
@@ -2143,6 +2525,35 @@ async function selfTest(){
      cueOf("Soft Ground","RUU")==="swallow", "got "+lastCue);
   ok("ending a run sounds like failure",
      cueOf("Soft Ground","UUU")==="fail" && failed==="sank", "got "+lastCue);
+
+  // 6d. share codes must round-trip exactly, and the editor must not publish
+  //     anything the solver can't finish
+  const sample={name:"Round Trip", par:3, rows:["#######","#@ $ o#","#######"]};
+  const code=encodeLevel(sample);
+  const back=decodeLevel(code);
+  ok("a share code round-trips a site exactly",
+     back && back.name===sample.name &&
+     JSON.stringify(back.rows)===JSON.stringify(sample.rows),
+     "code "+code.length+" chars");
+  ok("a corrupted code is rejected, not half-read",
+     decodeLevel("CF1notbase64!!")===null && decodeLevel("hello")===null &&
+     decodeLevel("")===null);
+
+  ok("a verified site reports the true optimum",
+     (()=>{ const v=verifyDef({name:"x",par:0,rows:sample.rows});
+            return v.ok && v.par===3; })());
+  ok("an unsolvable site is refused",
+     (()=>{ const v=verifyDef({name:"x",par:0,
+              rows:["#######","#@ $ #","#    o#","#######"]});
+            return !v.ok; })(), "walled-off hole");
+  ok("a site with no dozer is refused",
+     !verifyDef({name:"x",par:0,rows:["#####","# $o#","#####"]}).ok);
+  ok("a site with too few loads for its holes is refused",
+     !verifyDef({name:"x",par:0,rows:["#######","#@ $ o#","#o    #","#######"]}).ok);
+  ok("more loads than the checker can be certain about are refused",
+     !verifyDef({name:"x",par:0,
+       rows:["#########","#@$$$$  #","#o o o o#","#########"]}).ok,
+     "guards the promise that a published par is real");
 
   // 7. the picker is patched, not rebuilt
   loadLevel(0);

@@ -135,9 +135,12 @@ const sandbox = {
     borderLeftWidth: "0px", borderRightWidth: "0px",
     display: "block", overflowX: "visible",
   }),
-  setTimeout, clearTimeout, console, Math, Date, JSON, performance,
+  setTimeout, clearTimeout, setInterval, clearInterval,
+  console, Math, Date, JSON, performance,
   Set, Map, Array, Object, String, Number, Boolean, Promise, Error,
   parseFloat, parseInt, isNaN, structuredClone,
+  // the share codes are base64url over UTF-8
+  btoa, atob, TextEncoder, TextDecoder, Uint8Array,
 };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
