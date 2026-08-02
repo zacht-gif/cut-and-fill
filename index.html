@@ -54,10 +54,12 @@ h1{font-size:20px;letter-spacing:.22em;text-transform:uppercase;
   color:#eaf4f9;font-weight:700}
 h1 span{color:var(--dozer)}
 .sub{color:var(--ink-dim);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
-#diffTag,#hapticTag,#soundTag{cursor:pointer;border:1px solid var(--line);
-  border-radius:5px;padding:3px 9px;transition:.12s;display:inline-block}
-#diffTag:hover,#hapticTag:hover,#soundTag:hover{border-color:var(--accent);color:#eaf4f9}
-#hapticTag[hidden]{display:none}
+#diffTag,#hapticTag,#soundTag,#touchTag{cursor:pointer;border:1px solid var(--line);
+  border-radius:5px;padding:3px 9px;transition:.12s;display:inline-block;
+  touch-action:manipulation}
+#diffTag:hover,#hapticTag:hover,#soundTag:hover,#touchTag:hover{
+  border-color:var(--accent);color:#eaf4f9}
+#hapticTag[hidden],#touchTag[hidden]{display:none}
 #hapticTag.off,#soundTag.off{opacity:.5}
 
 .stats{width:100%;max-width:820px;display:flex;gap:8px;flex-wrap:wrap}
@@ -140,13 +142,13 @@ h1 span{color:var(--dozer)}
     rgba(255,77,77,.45) 0 4px, transparent 4px 9px);
   animation:pulse .9s ease-in-out infinite}
 
+/* The animation is timed to the input, not fixed. A fixed 110ms can't finish
+   between fast moves, so the sprite trails and the rotation is caught mid-turn;
+   killing the animation outright instead makes movement read as teleporting.
+   Scaling it to the gap between moves keeps motion continuous at any speed. */
 .ent{position:absolute;width:var(--cell);height:var(--cell);left:0;top:0;
-  transition:transform .11s ease-out;will-change:transform}
+  transition:transform var(--move-ms,110ms) ease-out;will-change:transform}
 .ent.nojump{transition:none}
-/* Held keys repeat every ~25-35ms, far faster than a 110ms transition can
-   finish. Left animating, the sprite never arrives (it reads as stuck between
-   cells) and the rotation is caught mid-turn (it reads as stuck at an angle).
-   While moves are outrunning the animation, snap instead. */
 #board.snap .ent,#board.snap .ent .rot{transition:none}
 .ent.offmap{opacity:0;pointer-events:none}
 
@@ -162,7 +164,8 @@ h1 span{color:var(--dozer)}
 .pile.gone{transition:transform .11s ease-out,opacity .22s,scale .22s;opacity:0;scale:.35}
 
 .dozer{padding:3px;z-index:3}
-.dozer .rot{width:100%;height:100%;position:relative;transition:rotate .11s ease-out}
+.dozer .rot{width:100%;height:100%;position:relative;
+  transition:rotate var(--move-ms,110ms) ease-out}
 .dozer .hull{position:absolute;inset:14% 10% 6% 10%;border-radius:4px;
   background:linear-gradient(180deg,var(--dozer),#d98a00);
   box-shadow:inset 0 -3px 0 rgba(0,0,0,.3),0 3px 8px -3px #000}
@@ -187,18 +190,24 @@ h1 span{color:var(--dozer)}
   align-items:center;justify-content:center}
 button{font:inherit;color:var(--ink);background:var(--panel);
   border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer;
-  letter-spacing:.1em;text-transform:uppercase;font-size:11px;transition:.12s}
+  letter-spacing:.1em;text-transform:uppercase;font-size:11px;transition:.12s;
+  /* kills the double-tap-to-zoom gesture and its 300ms delay, without
+     blocking a deliberate pinch the way user-scalable=no would */
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button:hover:not(:disabled){border-color:var(--accent);color:#eaf4f9}
 button:active:not(:disabled){transform:translateY(1px)}
 button:disabled{opacity:.35;cursor:default}
 button.primary{background:var(--dozer);color:#241800;border-color:var(--dozer);font-weight:700}
 button.primary:hover{color:#241800;filter:brightness(1.08)}
 
-#pad{display:none;gap:6px;grid-template-columns:repeat(3,54px);
-  grid-template-rows:repeat(3,44px);justify-content:center}
-#pad button{padding:0;font-size:17px}
+/* Bigger targets and real gaps between them: the old 54x44 buttons at 6px
+   spacing were easy to fat-finger when you aren't looking at your thumb. */
+#pad{display:none;gap:12px;grid-template-columns:repeat(3,68px);
+  grid-template-rows:repeat(3,56px);justify-content:center;touch-action:manipulation}
+#pad button{padding:0;font-size:20px}
 #pad .sp{visibility:hidden}
-@media (hover:none),(max-width:560px){#pad{display:grid}}
+@media (hover:none),(max-width:560px){ body.pad #pad{display:grid} }
+body.swipe #pad{display:none}
 
 #levels{width:100%;max-width:820px;display:grid;
   grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
@@ -255,7 +264,8 @@ body.ads .adslot{display:flex}
   h1{font-size:17px}
   .row{gap:6px}
   button{padding:7px 11px}
-  #pad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,40px)}
+  /* the pad keeps its full size here on purpose — it is the one control you
+     press without looking, so it gets the space rather than giving it up */
 }
 
 #objectives{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
@@ -397,6 +407,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div class="sub">
     <span id="levelName">Level 1</span> &nbsp;
     <span id="sStars">★ 0/72</span> &nbsp;
+    <span id="touchTag" hidden>Pad</span>
     <span id="soundTag">♪ on</span>
     <span id="hapticTag" hidden>Buzz on</span>
     <span id="diffTag">Operator</span>
@@ -890,7 +901,8 @@ function load(){
           hints: Number.isInteger(raw.hints)?raw.hints:START_HINTS,
           awarded: raw.awarded||{},
           haptics: raw.haptics!==false,
-          sound: raw.sound!==false};
+          sound: raw.sound!==false,
+          touch: raw.touch==="swipe"?"swipe":"pad"};
 }
 
 /**
@@ -1915,14 +1927,17 @@ function setDiff(d){
   if(lv) custom?startLevel(custom.def,custom.label):loadLevel(idx);
 }
 
-const ANIM_MS=120;                 // a touch over the .11s transition
 let lastMoveAt=0;
 function doMove(dir){
   if(won||failed) return;
-  // if moves are arriving faster than the animation can finish, stop animating
-  // rather than letting the sprite trail behind or freeze mid-rotation
+  // Time the animation to how fast moves are actually arriving: slow enough to
+  // read when you tap, short enough to finish when you hold. Only a burst
+  // faster than any animation could show (test loops, key spam) snaps.
   const now=(typeof performance!=="undefined"?performance.now():Date.now());
-  boardEl.classList.toggle("snap", now-lastMoveAt<ANIM_MS);
+  const gap=now-lastMoveAt;
+  boardEl.classList.toggle("snap", gap<35);
+  boardEl.style.setProperty("--move-ms",
+    Math.round(Math.max(40,Math.min(110,gap*0.8)))+"ms");
   lastMoveAt=now;
   hint=null;
   const snap=clone(st);
@@ -2066,6 +2081,35 @@ function undo(){
 const KEYS={ArrowUp:0,w:0,W:0,ArrowRight:1,d:1,D:1,
             ArrowDown:2,s:2,S:2,ArrowLeft:3,a:3,A:3};
 
+/* ---- held-key movement ----
+   The OS repeat rate is not ours to choose, differs per machine, and only ever
+   repeats the most recently pressed key — which is why holding two arrows felt
+   unpredictable. Track which directions are down and drive our own cadence: an
+   initial pause so a tap stays one step, then a steady rate. The newest key
+   held wins, so rolling from one direction into another is deterministic. */
+const HOLD_DELAY=180, HOLD_RATE=90;
+let heldDirs=[], holdTimer=null;
+function holdTick(){
+  if(!heldDirs.length) return;
+  doMove(heldDirs[heldDirs.length-1]);
+  holdTimer=setTimeout(holdTick,HOLD_RATE);
+}
+function pressDir(d){
+  heldDirs=heldDirs.filter(x=>x!==d);
+  heldDirs.push(d);
+  doMove(d);
+  clearTimeout(holdTimer);
+  holdTimer=setTimeout(holdTick,HOLD_DELAY);
+}
+function releaseDir(d){
+  heldDirs=heldDirs.filter(x=>x!==d);
+  clearTimeout(holdTimer);
+  if(heldDirs.length) holdTimer=setTimeout(holdTick,HOLD_RATE);
+}
+function releaseAll(){ heldDirs=[]; clearTimeout(holdTimer); }
+addEventListener("keyup",e=>{ if(e.key in KEYS) releaseDir(KEYS[e.key]); });
+addEventListener("blur",releaseAll);        // alt-tab must not leave it driving
+
 /* ---- panels are driveable from the keyboard, same keys as the game ----
    Real DOM focus is used rather than a bespoke cursor, so Enter and Space
    activate natively and the panels stay usable with a screen reader. */
@@ -2130,8 +2174,8 @@ addEventListener("keydown",e=>{
     }
     return;
   }
-  if(e.key in KEYS){ e.preventDefault(); doMove(KEYS[e.key]); return; }
-  if(e.key===" "||e.key==="."){ e.preventDefault(); doMove(WAIT); }
+  if(e.key in KEYS){ e.preventDefault(); if(!e.repeat) pressDir(KEYS[e.key]); return; }
+  if(e.key===" "||e.key==="."){ e.preventDefault(); if(!e.repeat) doMove(WAIT); }
   else if(e.key==="z"||e.key==="Z"||e.key==="u"||e.key==="U"){ e.preventDefault(); undo(); }
   else if(e.key==="h"||e.key==="H"){ e.preventDefault(); showHint(); }
   else if(e.key==="r"||e.key==="R"){ e.preventDefault();
@@ -2277,6 +2321,25 @@ $("#hapticTag").onclick=()=>{
 };
 paintHaptics();
 
+/* Pad or swipe. Swipe hides the d-pad entirely, which both removes the
+   fat-finger problem and hands ~180px of height back to the board — worth
+   offering rather than picking for everyone. */
+const isTouch = () => typeof navigator!=="undefined" &&
+                      ((navigator.maxTouchPoints||0)>0);
+function paintTouchMode(){
+  const t=$("#touchTag");
+  t.hidden=!isTouch();
+  t.textContent=SV.touch==="swipe"?"Swipe":"Pad";
+  document.body.classList.toggle("pad",SV.touch!=="swipe");
+  document.body.classList.toggle("swipe",SV.touch==="swipe");
+  if(lv){ fitCell(); render(); }
+}
+$("#touchTag").onclick=()=>{
+  SV.touch=SV.touch==="swipe"?"pad":"swipe";
+  save();
+  paintTouchMode();
+};
+
 function paintSound(){
   const t=$("#soundTag");
   t.textContent=SV.sound?"♪ on":"♪ off";
@@ -2414,6 +2477,7 @@ function setDrawer(open){
 }
 $("#drawerToggle").onclick=()=>setDrawer(drawerEl.classList.contains("closed"));
 
+paintTouchMode();
 buildPicker();
 renderCommunity();
 const lastName=localStorage.getItem(SAVE_KEY+".last");
@@ -2642,6 +2706,37 @@ async function selfTest(){
   lastMoveAt=(typeof performance!=="undefined"?performance.now():Date.now())-800;
   doMove(1);
   ok("a deliberate move animates again", !boardEl.classList.contains("snap"));
+
+  // 6g. held-key movement: our own cadence, newest key wins
+  loadLevel(0); releaseAll();
+  const m0=st.moves;
+  pressDir(1);
+  ok("a tap is exactly one step", st.moves-m0===1, "moved "+(st.moves-m0));
+  pressDir(2);
+  ok("the newest held direction wins",
+     heldDirs[heldDirs.length-1]===2, "held "+heldDirs.join(","));
+  releaseDir(2);
+  ok("releasing the newest falls back to the one still held",
+     heldDirs.length===1 && heldDirs[0]===1, "held "+heldDirs.join(","));
+  releaseAll();
+  ok("losing focus stops movement", heldDirs.length===0);
+
+  // 6h. animation is timed to the input rather than all-or-nothing
+  lastMoveAt=(typeof performance!=="undefined"?performance.now():Date.now())-90;
+  doMove(1);
+  const fastMs=parseInt(boardEl.style.getPropertyValue("--move-ms"),10);
+  lastMoveAt=(typeof performance!=="undefined"?performance.now():Date.now())-600;
+  doMove(3);
+  const slowMs=parseInt(boardEl.style.getPropertyValue("--move-ms"),10);
+  ok("a quick move animates quicker than a deliberate one",
+     fastMs<slowMs && fastMs>=40 && slowMs<=110, fastMs+"ms vs "+slowMs+"ms");
+
+  // 6i. touch control mode
+  SV.touch="swipe"; paintTouchMode();
+  ok("swipe mode hides the pad", document.body.classList.contains("swipe") &&
+     !document.body.classList.contains("pad"));
+  SV.touch="pad"; paintTouchMode();
+  ok("pad mode shows it again", document.body.classList.contains("pad"));
 
   // 6f. an open panel must be detected, or keystrokes reach the board behind it
   closeAllOverlays();
