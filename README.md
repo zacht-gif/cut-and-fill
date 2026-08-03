@@ -1,15 +1,20 @@
 # Cut & Fill
 
+A tactile puzzle game about moving earth and avoiding traffic.
+
+You control a dozer to cut dirt from some cells and fill holes in others. But watch out—vehicles move through the site, and you'll fail if one hits you. Three difficulty shifts let you tackle the same puzzle at your own pace, and a built-in hint system helps when you're stuck.
+
+**Play now:** [itch.io](https://zacht.itch.io/cut-and-fill) or [GitHub Pages](https://zacht.github.io/cut-and-fill)
+
+## Quick Start
+
+Open `index.html` in any browser. No install, no build step, no server. Works offline.
+
+---
+
 > **Proprietary — all rights reserved.** Not licensed for copying,
 > redistribution, modification, reskinning, or reuse of its level designs or
-> source. See [LICENSE](LICENSE), and read the note at the bottom of it about
-> what a licence can and cannot protect for a browser game.
-
-A grading puzzle. You drive a bulldozer around a site grid, pushing dirt into
-holes until the whole site is level — without sinking it, getting run over, or
-causing a wreck.
-
-Open `index.html` in any browser. No install, no build step, no server.
+> source. See [LICENSE](LICENSE).
 
 ## Rules
 
