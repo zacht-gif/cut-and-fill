@@ -497,6 +497,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <p id="wBody"></p>
   <div class="row">
     <button id="wReplay">Replay</button>
+    <button id="wShare">Share Result</button>
     <button class="primary" id="wNext">Next Level</button>
   </div>
 </div></div>
@@ -886,6 +887,11 @@ const MOVECH={0:"U",1:"R",2:"D",3:"L","-1":"."};
 const SAVE_KEY="cutfill.v4";
 const START_HINTS=3;
 
+/* The one place the play link lives. It rides on every shared result, so it
+   has to be the canonical page — not location.href, which on itch resolves to
+   a throwaway html-classic.itch.zone sandbox URL nobody can visit. */
+const PLAY_URL="https://thornsrl.itch.io/cut-fill";
+
 /**
  * Ad slots: #adTop and #adBottom, sized to IAB leaderboard (728x90) on
  * desktop and mobile banner (320x50) below 800px. Flip `enabled` once a
@@ -909,6 +915,7 @@ let diff="operator";
 let custom=null;        // {def,label,key} while playing a generated site
 let hint=null;          // {r,c,ch} one suggested move
 let usedHint=false, usedUndo=false;      // per-run, for the unaided objective
+let shareText="";       // composed at win time, copied on demand
 let pileEls=[], vehEls=[], cellEls=[], dozerEl=null, rotEl=null, hintEl=null, lastVeh=[];
 let SV=load();
 let best=SV.best;
@@ -1497,7 +1504,10 @@ async function generateSite(seed, tier, onProgress){
         return {def, path:r.path, attempts:attempt};
       }
     }
-    if(attempt%12===0){
+    // Yield often. The slowest seeds resolve in a handful of candidates, so a
+    // wider stride means the hardest generations never yield at all — the
+    // progress note freezes and the page stops repainting for seconds.
+    if(attempt%3===0){
       onProgress&&onProgress(attempt);
       await new Promise(r=>setTimeout(r,0));
     }
@@ -1505,10 +1515,16 @@ async function generateSite(seed, tier, onProgress){
   return null;
 }
 
-const todaySeed=()=>{
-  const d=new Date();
-  return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
-};
+/* One site a day, the same one everywhere. UTC, not local time: a local date
+   puts Auckland and Los Angeles on different puzzles at the same moment, and
+   disagrees with the date printed on the card. The label is derived from the
+   seed rather than read off the clock a second time, so the two cannot drift
+   apart across UTC midnight. */
+function todayUTC(now){
+  const d=now||new Date();
+  const seed=d.getUTCFullYear()*10000+(d.getUTCMonth()+1)*100+d.getUTCDate();
+  return {seed, date:String(seed).replace(/(\d{4})(\d\d)(\d\d)/,"$1-$2-$3")};
+}
 
 /* ============================================================
    Level editor and sharing
@@ -1629,12 +1645,34 @@ function renderCommunity(){
   });
 }
 
+/* The async clipboard is the right call when it works, but it rejects whenever
+   the document has lost focus, and it isn't there at all on older browsers.
+   Both used to end in a silent no-op — survivable on the editor's Code button,
+   not on the win card, where a dead-looking Share is the one thing that costs
+   us a player telling someone else about the game. Fall back to the selection
+   trick, and if even that fails, say so rather than claim a copy that never
+   happened. */
 function copyText(text,btn){
-  const done=()=>{ if(btn){ const t=btn.textContent; btn.textContent="Copied";
-                            setTimeout(()=>btn.textContent=t,1200); } };
+  if(btn&&btn._label===undefined) btn._label=btn.textContent;
+  const flash=msg=>{ if(btn){ btn.textContent=msg;
+                              setTimeout(()=>btn.textContent=btn._label,1400); } };
+  const legacy=()=>{
+    try{
+      const ta=document.createElement("textarea");
+      ta.value=text;
+      ta.setAttribute("readonly","");
+      ta.style.cssText="position:fixed;top:-1000px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok=document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){ return false; }
+  };
+  const fallback=()=>flash(legacy()?"Copied":"Copy failed");
   if(navigator.clipboard&&navigator.clipboard.writeText)
-    navigator.clipboard.writeText(text).then(done,()=>{});
-  else done();
+    navigator.clipboard.writeText(text).then(()=>flash("Copied"),fallback);
+  else fallback();
 }
 
 /* ---- the editing surface ---- */
@@ -1948,7 +1986,7 @@ function startLevel(def,label){
   lv=parse(def,diff);
   st=freshState();
   past=[]; won=false; failed=null; hint=null;
-  usedHint=false; usedUndo=false;
+  usedHint=false; usedUndo=false; shareText="";
   $("#win").classList.remove("on");
   $("#lose").classList.remove("on");
   $("#levelName").textContent=label;
@@ -2023,6 +2061,21 @@ function doMove(dir){
   render();
 }
 
+/* A result you can paste anywhere: what you did, never how you did it. No
+   move sequence, no level code — the point is to make a stranger curious, not
+   to hand them the answer. The link is the entire reason this exists. */
+function buildShare(stars, unaided, seconds){
+  const title = custom ? custom.label : "Level "+(idx+1)+" — "+LEVELS[idx].name;
+  const mark = on => on ? "🟩" : "⬛";
+  const bits = [st.moves+" moves (par "+lv.par+")"];
+  if(seconds>0) bits.push(seconds.toFixed(1)+"s");
+  bits.push(DIFFS[diff].name+" shift");
+  return ["Cut & Fill: "+title,
+          "★".repeat(stars)+"☆".repeat(3-stars)+"  "+bits.join(" · "),
+          "🟩 filled  "+mark(st.moves<=lv.par)+" par  "+mark(unaided)+" unaided",
+          PLAY_URL].join("\n");
+}
+
 function finish(){
   if(timerInterval) clearInterval(timerInterval);
   won=true;
@@ -2033,9 +2086,10 @@ function finish(){
     if(isBest) best[diff][slot]=st.moves;
     if(unaided) SV.clean[diff][slot]=true;
   }
-  // record time if in time trial mode
-  if(slot!=null && SV.timeTrial && startTime){
-    const elapsed=getElapsedTime();
+  // Snapshot now: startTime is never cleared after a win, so getElapsedTime()
+  // keeps climbing and a share copied a minute later would lie.
+  const elapsed = (SV.timeTrial && startTime) ? getElapsedTime() : 0;
+  if(slot!=null && elapsed>0){
     const prevTime=bestTimeHere();
     if(prevTime==null || elapsed<prevTime){
       SV.times[diff][slot]=elapsed;
@@ -2073,6 +2127,8 @@ function finish(){
     ? "<br><span class='togo'>Unaided — no hint, no undo.</span>" : "";
   $("#wBody").innerHTML="<b>"+st.moves+"</b> moves &nbsp;·&nbsp; par <b>"+lv.par+"</b>"+
                         note+earnedNote+cleanNote+nextUp;
+  shareText = slot==null ? "" : buildShare(got, unaided, elapsed);
+  $("#wShare").style.display = shareText ? "" : "none";
   $("#wNext").style.display=(custom||last)?"none":"";
   setTimeout(()=>showOverlay("win"),260);
   render();
@@ -2220,8 +2276,11 @@ addEventListener("keydown",e=>{
     if(e.key==="Escape"){
       e.preventDefault();
       if(ov.id==="title") closeTitle();
-      else if(ov.id==="editor"||ov.id==="importer"||ov.id==="settings") ov.classList.remove("on");
-      else if(ov.id==="diff"&&localStorage.getItem(SAVE_KEY+".diff"))
+      // The shift picker used to be a gate you had to answer on first run, so
+      // Escape only worked once a shift had been saved. It is opt-in now, and
+      // the card carries no close button — leaving that guard in place would
+      // trap anyone who opened it from the header chip just to read it.
+      else if(ov.id==="editor"||ov.id==="importer"||ov.id==="settings"||ov.id==="diff")
         ov.classList.remove("on");
       return;
     }
@@ -2258,6 +2317,7 @@ $("#bReset").onclick=restart;
 $("#bPrev").onclick=()=>loadLevel(custom?idx:idx-1);
 $("#bNext").onclick=()=>loadLevel(custom?idx:idx+1);
 $("#wReplay").onclick=restart;
+$("#wShare").onclick=()=>copyText(shareText,$("#wShare"));
 $("#wNext").onclick=()=>loadLevel(idx+1);
 $("#lUndo").onclick=undo;
 $("#lReset").onclick=restart;
@@ -2473,9 +2533,8 @@ document.querySelectorAll("[data-tier]").forEach(b=>{
                         "Random Site — "+b.dataset.tier, null);
 });
 $("#bDaily").onclick=()=>{
-  const seed=todaySeed();
-  const d=new Date().toISOString().slice(0,10);
-  newSite("medium", seed, "Daily Site — "+d, "daily:"+seed);
+  const t=todayUTC();
+  newSite("medium", t.seed, "Daily Site — "+t.date, "daily:"+t.seed);
 };
 document.querySelectorAll("#pad button").forEach(b=>{
   b.onclick=()=>doMove(+b.dataset.d);
@@ -2555,7 +2614,10 @@ function closeTitle(){
   if(!t.classList.contains("on")) return;
   clearInterval(titleTimer); titleTimer=null;
   t.classList.remove("on");
-  if(!localStorage.getItem(SAVE_KEY+".diff")) showOverlay("diff");
+  // Straight into level 1. A first-time visitor who has to pick a shift before
+  // touching the game is a visitor deciding whether to bother; `diff` already
+  // defaults to Operator, and the shift stays one click away in the header chip
+  // and the settings panel.
   if(lv){ fitCell(); render(); }
 }
 $("#tStart").onclick=closeTitle;
@@ -2577,7 +2639,7 @@ const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
 loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
 setDrawer(window.innerWidth>=760);         // phones start with the board in view
 buildTitle();
-runTitle();                                // the shift picker follows the title
+runTitle();
 focusOverlay($("#title"));                 // Enter starts without reaching for a mouse
 
 /* ============================================================
@@ -2859,9 +2921,35 @@ async function selfTest(){
   }
   ok("generated sites are solvable and replay to a win", !genBad.length, genBad.join("; "));
 
+  // a random tier is seeded from a throwaway number nobody else can reproduce,
+  // so it is never recorded — and there is nothing honest to share about it
+  ok("an unrecorded random site offers nothing to share",
+     bestSlot()===null && shareText==="", JSON.stringify(shareText));
+
   const a=makeCandidate(mulberry32(777),"medium"), b=makeCandidate(mulberry32(777),"medium");
   ok("daily generation is deterministic for a seed",
      JSON.stringify(a.rows)===JSON.stringify(b.rows));
+
+  // 9. the daily must be one puzzle worldwide: UTC, and a label that cannot
+  //    disagree with the seed it was built from. Two instants either side of
+  //    UTC noon — under a local-date seed at least one of them is wrong in
+  //    every timezone that is not UTC, so this catches the regression without
+  //    mocking a clock.
+  const early=todayUTC(new Date("2026-08-07T00:30:00Z"));
+  const late =todayUTC(new Date("2026-08-07T23:30:00Z"));
+  ok("the daily rolls over at UTC midnight, in every timezone",
+     early.seed===20260807 && late.seed===20260807, early.seed+" / "+late.seed);
+  ok("the daily label is derived from the daily seed",
+     late.date==="2026-08-07", late.date);
+
+  // 10. a shared result carries the link and leaks nothing
+  loadLevel(0); play(SOLUTIONS[0]);
+  ok("a win produces share text that carries the play link",
+     shareText.includes(PLAY_URL) && shareText.includes("Cut & Fill"),
+     shareText.replace(/\n/g," | "));
+  ok("share text never leaks the solution",
+     !shareText.includes(SOLUTIONS[0]) && !/CF1/.test(shareText),
+     shareText.replace(/\n/g," | "));
 
   return R;
 }

@@ -4,7 +4,7 @@
 
 ### Code & Build
 - [ ] Latest commit pushed to git
-- [ ] Run regression tests: `node tools/test.mjs` → **51/51 PASS**
+- [ ] Run regression tests: `node tools/test.mjs` → **56/56 PASS**
 - [ ] Run validation suite: `python tools/validate.py` → **All 25 levels OK**
 - [ ] No uncommitted changes
 
@@ -43,7 +43,7 @@
 
 ```bash
 # If not already done:
-cd "C:\Users\ZachT\OneDrive\Desktop\Personal Games\cut-and-fill"
+cd path/to/cut-and-fill
 
 git remote add origin https://github.com/YOUR_USERNAME/cut-and-fill.git
 git branch -M main

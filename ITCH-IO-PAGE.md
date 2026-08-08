@@ -3,7 +3,7 @@
 ## Project Setup
 
 **Title:** Cut & Fill  
-**URL/Slug:** cut-and-fill  
+**URL/Slug:** cut-fill  (live at https://thornsrl.itch.io/cut-fill)  
 **Author:** Zach Thornsbury  
 **Classification:** Game  
 **Kind:** HTML (Web)  

@@ -17,7 +17,7 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
 
 ### Phase 2: Testing & Stability ✅
 - Ran comprehensive validation suite: **All 25 levels PASS**
-- Ran JavaScript regression suite: **51/51 checks PASS**
+- Ran JavaScript regression suite: **56/56 checks PASS**
 - Verified all game mechanics, rules, audio, input systems
 - Created TEST-RESULTS.md documenting all tests
 - Game mechanically solid and ready for production
@@ -92,7 +92,7 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
    - Verify at `https://YOUR_USERNAME.github.io/cut-and-fill/`
 
 #### 5. **Final Verification**
-   - Run regression tests: `node tools/test.mjs` (should be 51/51 ✅)
+   - Run regression tests: `node tools/test.mjs` (should be 56/56 ✅)
    - Test on target browsers (Chrome, Firefox, Safari, mobile)
    - Verify both platforms work (itch.io frame + GitHub Pages)
    - Check no console errors (F12)
@@ -126,7 +126,7 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
 | Random Generation Tiers | 3 |
 | Game Modes | 4 (Campaign, Random, Daily, Custom) |
 | Difficulty Shifts | 3 (Apprentice, Operator, Foreman) |
-| Regression Tests | 51 (all passing ✅) |
+| Regression Tests | 56 (all passing ✅) |
 | Game File Size | ~114 KB |
 | External Dependencies | 0 (zero) |
 | Build Step Required | No |
@@ -183,10 +183,10 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
 
 ```bash
 # Python validation (validates all 25 levels)
-cd "C:\Users\ZachT\OneDrive\Desktop\Personal Games\cut-and-fill"
+cd path/to/cut-and-fill
 python tools/validate.py
 
-# JavaScript regression suite (51 checks)
+# JavaScript regression suite (56 checks)
 node tools/test.mjs
 
 # Browser test suite (open in browser)
@@ -206,7 +206,7 @@ Your game is successfully launched when:
 ✅ **Itch.io:** Game is playable on itch.io project page  
 ✅ **Offline:** Works when opened as local file  
 ✅ **All Levels:** All 25 campaign levels accessible  
-✅ **Regression Tests:** `node tools/test.mjs` → 51/51 PASS  
+✅ **Regression Tests:** `node tools/test.mjs` → 56/56 PASS  
 ✅ **Browser Tests:** `index.html?test=1` → All pass  
 ✅ **Cross-Platform:** Tested on Chrome, Firefox, Safari, mobile  
 ✅ **No Errors:** F12 console shows no errors  

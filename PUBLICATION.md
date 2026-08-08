@@ -11,7 +11,7 @@
 
 2. **Push to GitHub**
    ```bash
-   cd "C:\Users\ZachT\OneDrive\Desktop\Personal Games\cut-and-fill"
+   cd path/to/cut-and-fill
    git remote add origin https://github.com/YOUR_USERNAME/cut-and-fill.git
    git branch -M main
    git push -u origin main

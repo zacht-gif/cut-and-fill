@@ -4,7 +4,7 @@ A tactile puzzle game about moving earth and avoiding traffic.
 
 You control a dozer to cut dirt from some cells and fill holes in others. But watch out—vehicles move through the site, and you'll fail if one hits you. Three difficulty shifts let you tackle the same puzzle at your own pace, and a built-in hint system helps when you're stuck.
 
-**Play now:** [itch.io](https://zacht.itch.io/cut-and-fill) or [GitHub Pages](https://zacht.github.io/cut-and-fill)
+**Play now:** [itch.io](https://thornsrl.itch.io/cut-fill)
 
 ## Quick Start
 
@@ -198,8 +198,10 @@ away is margin, not theoretical possibility.
 
 Buttons under the board generate fresh sites.
 
-- **Daily Site** — seeded from the date, so the same board comes up for everyone
-  on a given day, and your best is recorded for it.
+- **Daily Site** — seeded from the **UTC** date, so the same board comes up for
+  everyone on a given day no matter their timezone, and your best is recorded
+  for it. The date printed on the card is derived from that seed rather than
+  read off the clock again, so the two can never disagree across UTC midnight.
 - **Random: Easy / Medium / Hard** — a throwaway site. Hard tiers can include
   soft ground and a gated haul road. Not recorded.
 

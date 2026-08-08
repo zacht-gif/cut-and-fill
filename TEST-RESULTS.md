@@ -14,7 +14,7 @@ all levels solvable on all 3 shift(s), all pars correct
 ```
 
 ## Regression Suite (JavaScript/Node.js)
-**Status:** ✅ PASS (51/51 checks)
+**Status:** ✅ PASS (56/56 checks)
 
 ### Game Mechanics
 - ✅ Solutions cover every level (25 levels / 25 solutions)

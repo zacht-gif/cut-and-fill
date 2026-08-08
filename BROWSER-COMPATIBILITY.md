@@ -81,7 +81,7 @@
 **Regression Suite:**
 - [ ] Run `?test=1` (append to URL)
 - [ ] Page shows test results
-- [ ] All 51 tests pass ✅
+- [ ] All 56 tests pass ✅
 
 ---
 
@@ -358,7 +358,7 @@ Game is **ready for launch** when:
 - ✅ Itch.io frame: Game loads and plays in embedded frame
 - ✅ GitHub Pages: Game loads from URL, offline playable
 - ✅ Offline: Works when opened as file://, no network errors
-- ✅ Regression suite: All 51 tests pass ✅
+- ✅ Regression suite: All 56 tests pass ✅
 - ✅ Performance: 60 FPS on desktop, 30-60 FPS on mobile
 
 ---
@@ -379,7 +379,7 @@ Input: [PASS/FAIL]
 Settings: [PASS/FAIL]
 Audio: [PASS/FAIL]
 Persistence: [PASS/FAIL]
-Regression Tests: [PASS/FAIL] (51/51 if checked)
+Regression Tests: [PASS/FAIL] (56/56 if checked)
 
 Issues Found:
 - [none] or [list here]
@@ -404,5 +404,5 @@ Before launch:
 - [ ] Screenshots captured and uploaded
 - [ ] Itch.io page set up
 - [ ] GitHub Pages deployed
-- [ ] Regression tests pass (51/51)
+- [ ] Regression tests pass (56/56)
 - [ ] Ready for public release
