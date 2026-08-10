@@ -285,6 +285,40 @@ async function main() {
 
       await sleep(shot.wait ?? 300);
 
+      // Soft ground ripples and warning cells pulse, both on infinite loops
+      // (index.html:116, 149), so an unpinned capture samples them at whatever
+      // phase the clock happened to be in and no two runs match. Rewind just
+      // the looping ones to t=0 and hold them there. Finite animations — the
+      // overlay `pop`, the `tamp` on a filled hole — are left alone: they have
+      // already finished by now, and freezing them at t=0 would capture a
+      // settings card scaled to nothing.
+      await cdp.send(
+        "Runtime.evaluate",
+        {
+          expression: `(async () => {
+          for (const a of document.getAnimations()) {
+            if (a.effect?.getTiming?.().iterations === Infinity) {
+              a.currentTime = 0;
+              a.pause();
+            }
+          }
+          // doMove derives --move-ms from the real gap between moves
+          // (index.html:2032), so timer jitter leaves it a millisecond
+          // different every run. Everything has settled by now; zero it so the
+          // capture has no timing-derived state left in it at all.
+          document.querySelector("#board").style.setProperty("--move-ms", "0ms");
+          // Pausing is not the same as the compositor having drawn the paused
+          // frame. Hand back two rAFs so the held phase is what actually gets
+          // rasterised, or the capture races the tick and the ripple lands a
+          // frame further on than it was pinned to.
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          })()`,
+          awaitPromise: true,
+        },
+        sessionId
+      );
+      await sleep(80);
+
       const { data } = await cdp.send(
         "Page.captureScreenshot",
         { format: "png", captureBeyondViewport: false },
