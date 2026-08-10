@@ -108,7 +108,7 @@ const SHOTS = [
     width: 1280,
     height: 720,
     // Vibration and touch-mode hide themselves off a touch device
-    // (index.html:2451, 2470), so a desktop capture would show two settings
+    // (index.html:2452, 2471), so a desktop capture would show two settings
     // the game supports but the screenshot silently denies.
     touch: true,
     setup: `

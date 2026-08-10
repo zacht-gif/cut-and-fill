@@ -2448,7 +2448,8 @@ $("#impGo").onclick=()=>{
 // only offer the toggle where vibration actually exists (Android, not iOS)
 function paintHaptics(){
   const t=$("#hapticTag");
-  t.hidden=!canBuzz();
+  // the row goes too, or desktop is left with a dangling "Vibration" label
+  $("#setHaptic").hidden=t.hidden=!canBuzz();
   t.textContent=SV.haptics?"Buzz on":"Buzz off";
   t.classList.toggle("off",!SV.haptics);
 }
@@ -2467,7 +2468,7 @@ const isTouch = () => typeof navigator!=="undefined" &&
                       ((navigator.maxTouchPoints||0)>0);
 function paintTouchMode(){
   const t=$("#touchTag");
-  t.hidden=!isTouch();
+  $("#setTouch").hidden=t.hidden=!isTouch();
   t.textContent=SV.touch==="swipe"?"Swipe":"Pad";
   document.body.classList.toggle("pad",SV.touch!=="swipe");
   document.body.classList.toggle("swipe",SV.touch==="swipe");
