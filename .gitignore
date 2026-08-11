@@ -16,3 +16,6 @@ assets/screenshots/
 # The authoritative copy is the SOLUTIONS array inside index.html; keeping a
 # second one in the tree only invites the two to drift.
 tools/solutions.json
+
+# local editor/agent config - a dev server definition, not part of the game
+.claude/
