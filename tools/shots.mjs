@@ -51,31 +51,47 @@ const BARE = CLOSE_DRAWER + `
   document.querySelector("header").style.justifyContent = "center";
 `;
 
-/** A banner is a wide strip, and the page stacks wordmark above board in a
- *  centred column — which at 1200px leaves the board a small island in a field
- *  of empty. This turns the layout on its side: wordmark left, board right, the
- *  way a banner actually reads. Presentation only, same as BARE. */
-const BANNER = CLOSE_DRAWER + `
+/** The banner replaces the page title above the description, so its job is to
+ *  BE the title — not to be another screenshot. An earlier version put the
+ *  board in it too, which meant the wordmark appeared twice within a few
+ *  hundred pixels (banner, then the embed viewport below it) and the board
+ *  three times over the page. The board belongs in the viewport, the
+ *  screenshots and the clip; this is just the name, on the game's own backdrop. */
+const TITLE_ONLY = `
+  closeTitle();
+  for (const el of document.body.children) el.style.display = "none";
+  const header = document.querySelector("header");
+  header.style.display = "flex";
+  header.style.width = "100%";
+  header.style.maxWidth = "none";
+  header.style.justifyContent = "center";
+  document.querySelectorAll("header .sub, #diffTag, #hapticTag, #soundTag, #touchTag")
+    .forEach(el => el.style.display = "none");
+  const h1 = document.querySelector("header h1");
+  h1.style.fontSize = "62px";
+  h1.style.letterSpacing = ".2em";
+  h1.style.whiteSpace = "nowrap";
+  document.body.style.height = "100vh";
+  document.body.style.justifyContent = "center";
+  document.body.style.padding = "0";
+`;
+
+/** itch drops its Play button dead centre of the embed viewport and there is
+ *  no moving it, so the composition has to keep that spot quiet rather than
+ *  put something good there. The first attempt centred the board and the button
+ *  landed squarely on Graveyard Shift's row of soft ground — the most
+ *  distinctive thing on that board, covered up.
+ *
+ *  No wordmark here: a banner sits directly above this on the page and already
+ *  carries the name, so repeating it puts the title twice within a few hundred
+ *  pixels. Dropping it also hands the whole frame back to the board. */
+const EMBED = CLOSE_DRAWER + `
   for (const sel of [".adslot", ".stats", "#objectives", ".row", "#pad",
-                     "#gen", "#drawerToggle", "header .sub", "#banner"]) {
+                     "#gen", "#drawerToggle", "header", "#banner"]) {
     document.querySelectorAll(sel).forEach(el => el.style.display = "none");
   }
-  const body = document.body;
-  body.style.flexDirection = "row";
-  body.style.alignItems = "center";
-  body.style.justifyContent = "center";
-  body.style.gap = "64px";
-  body.style.height = "100vh";
-  body.style.padding = "0 48px";
-  const header = document.querySelector("header");
-  header.style.width = "auto";
-  header.style.maxWidth = "none";
-  header.style.flex = "0 0 auto";
-  const wordmark = document.querySelector("header h1");
-  wordmark.style.fontSize = "58px";
-  wordmark.style.letterSpacing = ".14em";
-  wordmark.style.lineHeight = "1.1";
-  wordmark.style.whiteSpace = "nowrap";
+  const st = document.querySelector("#stage");
+  st.style.transform = "scale(.95)";
 `;
 
 /** The page background, which is the one piece that should NOT show a board:
@@ -179,7 +195,7 @@ const SHOTS = [
     // Level 25 "Graveyard Shift": the finale, and a different board from the
     // cover and the banner on purpose. Three images of the same position makes
     // a page look like it only has one screen in it.
-    setup: play({ level: 24, path: [D.UP, D.UP, D.LEFT, D.LEFT, D.LEFT], pre: BARE }),
+    setup: play({ level: 24, path: [D.UP, D.UP, D.LEFT, D.LEFT, D.LEFT], pre: EMBED }),
     wait: 500,
   },
   {
@@ -188,16 +204,10 @@ const SHOTS = [
     // Uploading a banner REPLACES the page title above the description, so the
     // wordmark has to be in the image or the page loses its own name.
     // Rendered at 2x the ~600px content column so it stays sharp when scaled.
-    // Level 19 "Rush Hour" — four vehicles, so the strip shows traffic rather
-    // than a quiet board, and it is not the cover's position again.
     width: 1200,
-    height: 440,
-    setup: play({
-      level: 18,
-      path: [D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT],
-      pre: BANNER,
-    }),
-    wait: 500,
+    height: 240,
+    setup: TITLE_ONLY,
+    wait: 250,
   },
   {
     id: "page-bg",
