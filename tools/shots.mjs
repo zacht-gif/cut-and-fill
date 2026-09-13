@@ -51,6 +51,33 @@ const BARE = CLOSE_DRAWER + `
   document.querySelector("header").style.justifyContent = "center";
 `;
 
+/** A banner is a wide strip, and the page stacks wordmark above board in a
+ *  centred column — which at 1200px leaves the board a small island in a field
+ *  of empty. This turns the layout on its side: wordmark left, board right, the
+ *  way a banner actually reads. Presentation only, same as BARE. */
+const BANNER = CLOSE_DRAWER + `
+  for (const sel of [".adslot", ".stats", "#objectives", ".row", "#pad",
+                     "#gen", "#drawerToggle", "header .sub", "#banner"]) {
+    document.querySelectorAll(sel).forEach(el => el.style.display = "none");
+  }
+  const body = document.body;
+  body.style.flexDirection = "row";
+  body.style.alignItems = "center";
+  body.style.justifyContent = "center";
+  body.style.gap = "64px";
+  body.style.height = "100vh";
+  body.style.padding = "0 48px";
+  const header = document.querySelector("header");
+  header.style.width = "auto";
+  header.style.maxWidth = "none";
+  header.style.flex = "0 0 auto";
+  const wordmark = document.querySelector("header h1");
+  wordmark.style.fontSize = "58px";
+  wordmark.style.letterSpacing = ".14em";
+  wordmark.style.lineHeight = "1.1";
+  wordmark.style.whiteSpace = "nowrap";
+`;
+
 /** Drive a sequence of moves with enough of a gap that the board animates the
  *  way it does under a human hand rather than snapping (index.html:2029). */
 const play = ({ level, path, pre = CLOSE_DRAWER }) => `
@@ -124,6 +151,32 @@ const SHOTS = [
     // itch's cover slot. The layout already collapses to a phone screen, so
     // rendering the real thing at 630x500 beats compositing a fake.
     setup: play({ level: 14, path: [D.RIGHT, D.RIGHT, D.DOWN], pre: BARE }),
+    wait: 500,
+  },
+  {
+    id: "embed-bg",
+    file: "embed-bg.png",
+    // The viewport behind itch's Play button before the game is launched.
+    // Measured on the live page: the placeholder is exactly 600x360 and
+    // currently has no background image at all, so a visitor's first sight of
+    // the game is an empty grey rectangle.
+    width: 600,
+    height: 360,
+    // The Play button lands dead centre and cannot be moved, so this does not
+    // try to dodge it — itch can overlay a gradient on the viewport, which is
+    // what gives the button something to sit on.
+    setup: play({ level: 14, path: [D.RIGHT, D.RIGHT, D.DOWN], pre: BARE }),
+    wait: 500,
+  },
+  {
+    id: "banner",
+    file: "banner.png",
+    // Uploading a banner REPLACES the page title above the description, so the
+    // wordmark has to be in the image or the page loses its own name.
+    // Rendered at 2x the ~600px content column so it stays sharp when scaled.
+    width: 1200,
+    height: 300,
+    setup: play({ level: 14, path: [D.RIGHT, D.RIGHT, D.DOWN], pre: BANNER }),
     wait: 500,
   },
 ];
