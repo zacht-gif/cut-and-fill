@@ -14,27 +14,14 @@
  *   node tools/shots.mjs cover      # just the shots whose id matches
  */
 
-import { spawn } from "node:child_process";
 import { mkdir, writeFile, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { CDP, launch, sleep } from "./lib/chrome.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GAME = pathToFileURL(path.join(ROOT, "index.html")).href;
 const OUT = path.join(ROOT, "assets", "screenshots");
-
-const CHROME = [
-  "C:/Program Files/Google/Chrome/Application/chrome.exe",
-  "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-].find(existsSync);
-
-if (!CHROME) {
-  console.error("No Chrome or Edge found. Install one, or edit the CHROME list.");
-  process.exit(1);
-}
 
 /* ---------------- the shot list ----------------
    `setup` runs in the page after load. It may return a promise; `wait` is an
@@ -143,66 +130,6 @@ const SHOTS = [
 
 /* ---------------- a very small CDP client ---------------- */
 
-class CDP {
-  constructor(ws) {
-    this.ws = ws;
-    this.seq = 0;
-    this.pending = new Map();
-    this.waiters = [];
-    ws.addEventListener("message", (ev) => {
-      const m = JSON.parse(ev.data);
-      if (m.id && this.pending.has(m.id)) {
-        const { resolve, reject } = this.pending.get(m.id);
-        this.pending.delete(m.id);
-        m.error ? reject(new Error(m.error.message || JSON.stringify(m.error))) : resolve(m.result);
-        return;
-      }
-      if (!m.method) return;
-      for (const w of this.waiters.splice(0)) {
-        w.method === m.method ? w.resolve(m.params) : this.waiters.push(w);
-      }
-    });
-  }
-
-  send(method, params = {}, sessionId) {
-    const id = ++this.seq;
-    const msg = { id, method, params };
-    if (sessionId) msg.sessionId = sessionId;
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws.send(JSON.stringify(msg));
-    });
-  }
-
-  once(method, timeoutMs = 15000) {
-    return new Promise((resolve, reject) => {
-      const w = { method, resolve };
-      this.waiters.push(w);
-      setTimeout(() => {
-        const i = this.waiters.indexOf(w);
-        if (i >= 0) {
-          this.waiters.splice(i, 1);
-          reject(new Error(`timed out waiting for ${method}`));
-        }
-      }, timeoutMs);
-    });
-  }
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function browserWsUrl(port) {
-  // Chrome needs a moment to bind the port; poll rather than guess a delay.
-  for (let i = 0; i < 100; i++) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${port}/json/version`);
-      if (r.ok) return (await r.json()).webSocketDebuggerUrl;
-    } catch {}
-    await sleep(100);
-  }
-  throw new Error("Chrome never opened its debugging port");
-}
-
 async function main() {
   const filter = process.argv[2];
   const shots = filter ? SHOTS.filter((s) => s.id.includes(filter)) : SHOTS;
@@ -212,41 +139,9 @@ async function main() {
   }
 
   await mkdir(OUT, { recursive: true });
-  const profile = path.join(tmpdir(), `cutfill-shots-${process.pid}`);
-  const port = 9222 + (process.pid % 500);
 
-  const chrome = spawn(
-    CHROME,
-    [
-      "--headless=new",
-      `--remote-debugging-port=${port}`,
-      `--user-data-dir=${profile}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--disable-extensions",
-      "--hide-scrollbars",
-      // The game is a local file that stores progress in localStorage.
-      "--allow-file-access-from-files",
-      "--force-color-profile=srgb",
-      "--force-device-scale-factor=1",
-      "about:blank",
-    ],
-    { stdio: "ignore" }
-  );
-
-  let cdp, ws;
+  const { cdp, sessionId, dispose } = await launch();
   try {
-    ws = new WebSocket(await browserWsUrl(port));
-    await new Promise((res, rej) => {
-      ws.addEventListener("open", res, { once: true });
-      ws.addEventListener("error", () => rej(new Error("CDP socket failed")), { once: true });
-    });
-    cdp = new CDP(ws);
-
-    const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
-    const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
-    await cdp.send("Page.enable", {}, sessionId);
-    await cdp.send("Runtime.enable", {}, sessionId);
 
     const problems = [];
     for (const shot of shots) {
@@ -335,10 +230,7 @@ async function main() {
       process.exitCode = 1;
     }
   } finally {
-    try { ws?.close(); } catch {}
-    chrome.kill();
-    await sleep(300);
-    await rm(profile, { recursive: true, force: true }).catch(() => {});
+    await dispose();
   }
 
   console.log(`\nWrote to ${path.relative(ROOT, OUT)}/`);
