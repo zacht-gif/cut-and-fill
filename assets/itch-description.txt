@@ -1,0 +1,87 @@
+Cut & Fill — itch.io description (paste-ready, no Markdown syntax)
+
+The live page is showing raw Markdown: "### Features" and "**Key mechanics:**"
+appear literally, because itch's description field is a rich-text editor, not a
+Markdown one. The text below has the # and * characters stripped. Paste it, then
+use the editor's own toolbar for headings and bold.
+
+Two content fixes are folded in: the old "Play Now: open index.html in any
+browser" instruction made no sense on a page whose whole job is the Run game
+button, and the symbol list referenced a car emoji the game doesn't draw.
+
+========================================================================
+
+A tactile puzzle game about moving earth and avoiding traffic.
+
+You drive a dozer, cutting dirt from some cells and filling holes in others.
+Vehicles patrol the site, and they do not stop for you.
+
+
+WHAT YOU'LL FIND
+
+25 hand-crafted campaign levels, ordered by measured difficulty — from simple
+grading to gated haul roads and a tempo that climbs the longer you take.
+
+Three difficulty shifts. Apprentice, Operator and Foreman change how traffic
+behaves and whether the red warning cells are drawn — never the puzzle itself.
+
+A random level generator, three tiers, that proves each site solvable before
+you ever see it.
+
+A daily challenge, seeded from the UTC date, so everyone in the world gets the
+same site on the same day.
+
+A level editor with instant verification. Share what you build as a code — no
+backend, no accounts, no hosting bill.
+
+Time-trial mode, with personal bests per level.
+
+A hint system that solves forward from where you are now, not from the start.
+Earn hints by finishing a site at par.
+
+
+HOW TO PLAY
+
+Fill every hole to clear the site.
+
+Move with the arrow keys or WASD. Wait a turn with Space — traffic only moves
+when you do, so waiting is a real move. Undo with Z, restart with R, hint with H.
+On a phone, swipe the board or use the on-screen pad.
+
+Push dirt into a hole and it drops in permanently. Waste a load and you can
+strand yourself, so there is no infinite retry with the same pile.
+
+You can push, never pull, and only one pile at a time.
+
+Red cells show exactly where traffic lands next turn. Timing is information
+here, not reflexes. The Foreman shift switches those warnings off.
+
+Leave dirt sitting in a live lane and a vehicle will pile into it.
+
+
+FEATURES
+
+25 hand-designed levels, plus random generation and a daily site
+Built-in level editor with share codes, no server required
+Time-trial mode with personal bests
+Three difficulty shifts over the same puzzles
+An earned hint system, not an infinite one
+Synthesised sound — no audio files
+Haptic feedback on Android
+Touch and keyboard controls, both configurable
+Runs offline: one HTML file, zero network requests
+No ads, no tracking, no paywalls
+
+
+ABOUT
+
+Built as a single self-contained HTML file — no build step, no dependencies, no
+external assets. The solver that verifies custom levels and generates the random
+ones runs in your browser, so a published level ships with a proven par rather
+than a guess.
+
+Vanilla JavaScript, CSS grid, WebAudio for sound, and plain DOM rendering with
+no canvas.
+
+Proprietary. All rights reserved. Not licensed for copying, modification, or
+redistribution.
