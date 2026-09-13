@@ -26,7 +26,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, copyFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, rmSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +35,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TARGET = "thornsrl/cut-fill:html5";
 const QUICK = process.argv.includes("--quick");
 const DRY = process.argv.includes("--dry-run");
+const ZIP = process.argv.includes("--zip");
 
 /* butler is deliberately NOT on PATH — editing PATH on this machine has cost
    time before, and a pinned path is the same on both machines. Still checks
@@ -83,7 +84,7 @@ function checkSelfContained() {
 }
 
 function main() {
-  if (!BUTLER) {
+  if (!BUTLER && !ZIP && !DRY) {
     fail("butler not found. Install it to C:/dev/tools/butler/, or put it on PATH.\n" +
          "        https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default");
   }
@@ -101,6 +102,29 @@ function main() {
 
   if (DRY) {
     console.log("\n--dry-run: checks passed, nothing pushed.");
+    return;
+  }
+
+  if (ZIP) {
+    // itch requires index.html at the ZIP ROOT. Nested inside a folder, the
+    // upload plays as a file listing instead of a game.
+    const dist = path.join(ROOT, "dist");
+    mkdirSync(dist, { recursive: true });
+    const zipPath = path.join(dist, "cut-fill.zip");
+    rmSync(zipPath, { force: true });
+    const stage = path.join(tmpdir(), "cutfill-zip-" + process.pid);
+    rmSync(stage, { recursive: true, force: true });
+    mkdirSync(stage, { recursive: true });
+    copyFileSync(path.join(ROOT, "index.html"), path.join(stage, "index.html"));
+    execFileSync("powershell", ["-NoProfile", "-NonInteractive", "-Command",
+      "Compress-Archive -Path '" + path.join(stage, "*") + "' -DestinationPath '" + zipPath + "' -Force"],
+      { stdio: "pipe" });
+    rmSync(stage, { recursive: true, force: true });
+    console.log("");
+    console.log("  " + path.relative(ROOT, zipPath) + "  " +
+                (statSync(zipPath).size / 1024).toFixed(0) + " KB  (index.html at the root)");
+    console.log("");
+    console.log("Upload it with the play-in-browser box ticked.");
     return;
   }
 

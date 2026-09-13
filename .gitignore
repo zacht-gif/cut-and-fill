@@ -19,3 +19,8 @@ tools/solutions.json
 
 # local editor/agent config - a dev server definition, not part of the game
 .claude/
+
+# The upload zip, produced by tools/publish.mjs --zip. Derived from index.html,
+# so storing it would only let the thing you upload drift from the thing you
+# tested. Rebuild it rather than keeping one around.
+dist/
