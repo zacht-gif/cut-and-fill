@@ -110,6 +110,27 @@ export async function launch() {
       "--allow-file-access-from-files",
       "--force-color-profile=srgb",
       "--force-device-scale-factor=1",
+      // Rasterise on the CPU. GPU rasterisation dithers gradients slightly
+      // differently between runs — measured as 1-2 levels of drift in the
+      // marsh cells and the body backdrop, invisible to the eye but enough to
+      // change every byte of the PNG. Captures are supposed to be comparable
+      // with a hash, so determinism beats the few hundred ms this costs.
+      "--disable-gpu",
+      "--disable-gpu-rasterization",
+      "--disable-lcd-text",
+      "--disable-font-subpixel-positioning",
+      // Chrome's own layout tests use this set to make rendering repeatable:
+      // it settles every compositor stage before drawing rather than letting a
+      // frame be captured mid-pipeline, which is where the last of the drift
+      // was coming from — a pixel or two on antialiased glyph edges.
+      "--deterministic-mode",
+      "--run-all-compositor-stages-before-draw",
+      "--disable-threaded-animation",
+      "--disable-threaded-scrolling",
+      "--disable-checker-imaging",
+      "--disable-image-animation-resync",
+      "--disable-partial-raster",
+      "--disable-skia-runtime-opts",
       "about:blank",
     ],
     { stdio: "ignore" }

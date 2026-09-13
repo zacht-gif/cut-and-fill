@@ -285,9 +285,15 @@ async function main() {
         {
           expression: `(async () => {
           for (const a of document.getAnimations()) {
+            // pause() BEFORE assigning currentTime, not after. Setting the
+            // time on a still-running animation and pausing afterwards leaves
+            // the hold time wherever the clock reached — measured at 17ms, one
+            // frame — so the marsh ripple rasterised from a fractional phase
+            // and drifted a level or two between runs. Only the two shots with
+            // soft ground on the board were ever affected.
             if (a.effect?.getTiming?.().iterations === Infinity) {
-              a.currentTime = 0;
               a.pause();
+              a.currentTime = 0;
             }
           }
           // doMove derives --move-ms from the real gap between moves

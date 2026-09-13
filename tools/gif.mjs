@@ -84,7 +84,8 @@ const CLIPS = [
  *  (The win overlay is dealt with at setup time instead — see NO_OVERLAY.) */
 const SETTLE = `(async () => {
   for (const a of document.getAnimations()) {
-    if (a.effect?.getTiming?.().iterations === Infinity) { a.currentTime = 0; a.pause(); }
+    // pause() before assigning, not after - see tools/shots.mjs for why.
+    if (a.effect?.getTiming?.().iterations === Infinity) { a.pause(); a.currentTime = 0; }
   }
   document.querySelector("#board").style.setProperty("--move-ms", "0ms");
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
