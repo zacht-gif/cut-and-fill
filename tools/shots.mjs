@@ -78,6 +78,16 @@ const BANNER = CLOSE_DRAWER + `
   wordmark.style.whiteSpace = "nowrap";
 `;
 
+/** The page background, which is the one piece that should NOT show a board:
+ *  it sits behind the text of the whole page, and a board back there competes
+ *  with everything written on top of it. index.html:body already paints a soft
+ *  radial glow over the base colour, so this captures exactly that and nothing
+ *  else — the game's own atmosphere, with the game taken out of it. */
+const BACKDROP = `
+  closeTitle();
+  for (const el of document.body.children) el.style.display = "none";
+`;
+
 /** Drive a sequence of moves with enough of a gap that the board animates the
  *  way it does under a human hand rather than snapping (index.html:2029). */
 const play = ({ level, path, pre = CLOSE_DRAWER }) => `
@@ -165,7 +175,11 @@ const SHOTS = [
     // The Play button lands dead centre and cannot be moved, so this does not
     // try to dodge it — itch can overlay a gradient on the viewport, which is
     // what gives the button something to sit on.
-    setup: play({ level: 14, path: [D.RIGHT, D.RIGHT, D.DOWN], pre: BARE }),
+    //
+    // Level 25 "Graveyard Shift": the finale, and a different board from the
+    // cover and the banner on purpose. Three images of the same position makes
+    // a page look like it only has one screen in it.
+    setup: play({ level: 24, path: [D.UP, D.UP, D.LEFT, D.LEFT, D.LEFT], pre: BARE }),
     wait: 500,
   },
   {
@@ -174,10 +188,26 @@ const SHOTS = [
     // Uploading a banner REPLACES the page title above the description, so the
     // wordmark has to be in the image or the page loses its own name.
     // Rendered at 2x the ~600px content column so it stays sharp when scaled.
+    // Level 19 "Rush Hour" — four vehicles, so the strip shows traffic rather
+    // than a quiet board, and it is not the cover's position again.
     width: 1200,
-    height: 300,
-    setup: play({ level: 14, path: [D.RIGHT, D.RIGHT, D.DOWN], pre: BANNER }),
+    height: 440,
+    setup: play({
+      level: 18,
+      path: [D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT, D.RIGHT],
+      pre: BANNER,
+    }),
     wait: 500,
+  },
+  {
+    id: "page-bg",
+    file: "page-bg.png",
+    // Tiled/positioned behind the whole page. Wide and tall enough to cover a
+    // desktop column without being scaled up into banding.
+    width: 1600,
+    height: 900,
+    setup: BACKDROP,
+    wait: 250,
   },
 ];
 
