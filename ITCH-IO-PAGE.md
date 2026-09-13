@@ -68,7 +68,7 @@ You control a dozer to cut dirt from some cells and fill holes in others. But wa
 ✅ Synthesized sound (no audio files)  
 ✅ Haptic feedback (Android)  
 ✅ Touch and keyboard controls, fully configurable  
-✅ Works offline — zero network requests, single HTML file  
+✅ Zero network requests — save the single HTML file and it plays with no connection  
 ✅ No ads, no tracking, no paywalls  
 
 ### Play Now

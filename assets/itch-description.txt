@@ -69,7 +69,7 @@ An earned hint system, not an infinite one
 Synthesised sound — no audio files
 Haptic feedback on Android
 Touch and keyboard controls, both configurable
-Runs offline: one HTML file, zero network requests
+One HTML file that makes zero network requests — save it and it plays with no connection
 No ads, no tracking, no paywalls
 
 
