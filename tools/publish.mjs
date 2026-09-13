@@ -33,9 +33,25 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TARGET = "thornsrl/cut-fill:html5";
-const QUICK = process.argv.includes("--quick");
-const DRY = process.argv.includes("--dry-run");
-const ZIP = process.argv.includes("--zip");
+/* Reject anything unrecognised rather than ignoring it. A flag this script did
+   not understand used to fall straight through to the butler push path, so a
+   typo -- or a flag added to the docs before the code -- published to the live
+   store page instead of failing. Exactly once was enough. Defaulting to the
+   most consequential action on unknown input is the bug; this closes it. */
+const KNOWN = new Set(["--quick", "--dry-run", "--zip"]);
+const ARGS = process.argv.slice(2);
+const unknown = ARGS.filter((a) => !KNOWN.has(a));
+if (unknown.length) {
+  console.error("PUBLISH FAILED: unrecognised argument" +
+    (unknown.length > 1 ? "s" : "") + ": " + unknown.join(", "));
+  console.error("        known flags: " + [...KNOWN].join(", "));
+  console.error("        nothing was published.");
+  process.exit(1);
+}
+
+const QUICK = ARGS.includes("--quick");
+const DRY = ARGS.includes("--dry-run");
+const ZIP = ARGS.includes("--zip");
 
 /* butler is deliberately NOT on PATH — editing PATH on this machine has cost
    time before, and a pinned path is the same on both machines. Still checks
