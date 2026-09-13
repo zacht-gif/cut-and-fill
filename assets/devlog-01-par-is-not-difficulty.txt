@@ -1,0 +1,71 @@
+Cut & Fill — devlog 1 (paste-ready, no Markdown syntax)
+
+itch's devlog editor is the same rich-text editor as the description field, not
+a Markdown one. Same trap as assets/itch-description.txt: pasting "## Heading"
+or "**bold**" puts those characters on the page literally. The text below has
+none in it. Paste it, then use the editor's own toolbar for the title, the
+section breaks and the bold runs.
+
+Where the GIF goes: upload rush-hour.gif in the devlog editor and place it
+after the third paragraph, at the line marked [GIF]. Delete that marker line.
+
+Suggested devlog title:  Par is not difficulty
+
+========================================================================
+
+
+Every level in Cut & Fill ships with a par that a solver has proved is the
+true optimum. Getting there was straightforward. Using par to order the
+campaign was the mistake.
+
+Par tells you how long a level is. I had assumed that was a decent stand-in
+for how hard it is, and ordered the first chapter that way. It played badly
+and I could not say why.
+
+So I measured two things par cannot see.
+
+[GIF]
+
+Trap density is the share of reachable positions from which the site can no
+longer be finished. It is the "I ruined this twenty moves ago and didn't
+notice" axis. Dirt drops into a hole permanently, so a wasted load can strand
+you with no way back and no signal that anything went wrong.
+
+Lethality is the share of available moves that end the run outright — sinking,
+being run over, or leaving dirt in a live lane for a truck to pile into. That
+one is invisible to trap density, because a fatal move never becomes a
+reachable position to count.
+
+Both are computed exactly rather than sampled: enumerate every reachable
+position, mark the ones with a winning move, then sweep that backwards through
+the move graph until it settles. Whatever is left cannot reach a win.
+
+The numbers said par was not merely a weak proxy for difficulty. It was
+inverted.
+
+The three longest levels in chapter one were the three safest, at 16 to 35
+percent trap. A five-move tutorial sat at 64 percent. That is not noise, it is
+the shape of the game: long levels are open rooms with space to recover, while
+short ones are tight single-load puzzles where most mistakes are quietly
+fatal. Ordering by par had been actively making the curve worse.
+
+The campaign is now ordered by trap times par — roughly, the effort you expect
+to lose to a ruined run. Neither number works alone. A four-move level can be
+trap-dense and still painless, because restarting costs you nothing.
+
+Measuring also caught two tutorials that were punishing players for learning
+the mechanic the tutorial was there to teach. Each handed out exactly one load
+of dirt, so the first misstep was unrecoverable:
+
+Corner Work went from 64 to 45 percent trap.
+Soft Ground went from 72 to 38 percent, and par 7 to 6.
+
+The first spare load I added to Soft Ground was useless, and it looked fine. It
+sat on the bottom row, where nothing can be pushed up into the goal's row — a
+spare that is not spare. The measurement is what caught that too.
+
+None of this changes a single rule. The levels you play are the same levels.
+They just arrive in an order that was measured instead of guessed, and the two
+that taught by punishing you no longer do.
+
+Play it in your browser, free: https://thornsrl.itch.io/cut-fill
