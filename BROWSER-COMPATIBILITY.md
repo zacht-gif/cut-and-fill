@@ -226,13 +226,15 @@
 - [ ] No CORS errors in console
 - [ ] All assets (CSS, JS, sounds) work
 - [ ] No network tab activity (F12 → Network)
+      Note: on itch the embed adds itch's own `htmlgame.js`. That is itch's
+      injection, not the game's — the file itself still requests nothing.
 - [ ] Game fully playable offline
 - [ ] localStorage works
 
 ### After GitHub Pages Deploy
 
 ```
-https://YOUR_USERNAME.github.io/cut-and-fill/
+https://zacht-gif.github.io/cut-and-fill/
 ```
 
 **Verify:**
@@ -245,7 +247,7 @@ https://YOUR_USERNAME.github.io/cut-and-fill/
 ### Itch.io Frame
 
 ```
-https://itch.io/games/cut-and-fill
+https://thornsrl.itch.io/cut-fill
 ```
 
 **Verify:**

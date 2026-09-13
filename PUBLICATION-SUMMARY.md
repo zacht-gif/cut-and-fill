@@ -1,8 +1,16 @@
 # Cut & Fill - Publication Summary
 
-## ✅ Publication Plan Complete
+## ✅ Launched
 
-Your Cut & Fill game is ready for launch! This document summarizes everything that's been prepared and what you need to do next.
+Cut & Fill went live in August 2026. This document is the record of what was
+prepared and how it shipped — every step below is done.
+
+| | |
+|---|---|
+| **Canonical** | https://thornsrl.itch.io/cut-fill |
+| **Mirror** | https://zacht-gif.github.io/cut-and-fill/ — live, deliberately unpromoted |
+| **Repo** | https://github.com/zacht-gif/cut-and-fill (public) |
+| **Store imagery** | 4 screenshots + cover, rendered from the game by `tools/shots.mjs` |
 
 ---
 
@@ -61,37 +69,37 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
 
 ---
 
-## What You Need to Do
+## How It Shipped
 
-### Immediate (Before Launch)
+### Launch steps (all complete)
 
-#### 1. **Create GitHub Repository**
+#### 1. ~~**Create GitHub Repository**~~ ✅ done
    - Go to https://github.com/new
    - Name: `cut-and-fill`
    - Make it Public (for free GitHub Pages hosting)
    - Follow instructions in PUBLICATION.md
 
-#### 2. **Capture Screenshots**
+#### 2. ~~**Capture Screenshots**~~ ✅ done
    - Follow SCREENSHOTS-GUIDE.md
    - Capture 2-4 screenshots (800×600 or higher)
    - Save as PNG files
    - Store in `assets/screenshots/` folder (optional)
 
-#### 3. **Create Itch.io Project**
+#### 3. ~~**Create Itch.io Project**~~ ✅ done
    - Go to https://itch.io/dashboard
-   - Create project: Title "Cut & Fill", URL "cut-and-fill"
+   - Create project: Title "Cut & Fill", URL "cut-fill" (the slug actually used)
    - Copy description from ITCH-IO-PAGE.md
    - Upload index.html file
    - Upload screenshots
    - Follow step-by-step in LAUNCH-CHECKLIST.md
 
-#### 4. **Enable GitHub Pages**
+#### 4. ~~**Enable GitHub Pages**~~ ✅ done
    - Go to repo Settings → Pages
    - Select: Branch `main`, folder `/root`
    - Save and wait 1-2 minutes
-   - Verify at `https://YOUR_USERNAME.github.io/cut-and-fill/`
+   - Verify at `https://zacht-gif.github.io/cut-and-fill/`
 
-#### 5. **Final Verification**
+#### 5. ~~**Final Verification**~~ ✅ done
    - Run regression tests: `node tools/test.mjs` (should be 56/56 ✅)
    - Test on target browsers (Chrome, Firefox, Safari, mobile)
    - Verify both platforms work (itch.io frame + GitHub Pages)
@@ -179,11 +187,11 @@ Your Cut & Fill game is ready for launch! This document summarizes everything th
 
 ## Testing Verification
 
-**Before you launch, run these tests:**
+**Before shipping any update, re-run these:**
 
 ```bash
 # Python validation (validates all 25 levels)
-cd path/to/cut-and-fill
+cd C:\dev\projects\cut-and-fill
 python tools/validate.py
 
 # JavaScript regression suite (56 checks)
@@ -194,15 +202,16 @@ node tools/test.mjs
 # Verify all tests pass
 ```
 
-**All three should show passing results before launch.**
+**All three should pass before a new `index.html` goes up on itch.**
+Last verified 2026-09-12: validator OK on all 25 levels across all 3 shifts, 56/56 JS checks.
 
 ---
 
 ## Success Criteria
 
-Your game is successfully launched when:
+All met at launch, and re-verified 2026-09-12:
 
-✅ **GitHub Pages:** Game loads at `https://YOUR_USERNAME.github.io/cut-and-fill/`  
+✅ **GitHub Pages:** Game loads at `https://zacht-gif.github.io/cut-and-fill/`  
 ✅ **Itch.io:** Game is playable on itch.io project page  
 ✅ **Offline:** Works when opened as local file  
 ✅ **All Levels:** All 25 campaign levels accessible  

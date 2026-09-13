@@ -1,5 +1,20 @@
 # Cut & Fill - Launch Checklist & Post-Launch Guide
 
+> **Launched August 2026.** The pre-launch and deployment sections below are
+> kept as the record of how it shipped and as the procedure for pushing an
+> update. The unticked boxes are historical — do not read them as outstanding
+> work.
+>
+> | | |
+> |---|---|
+> | **Canonical** | https://thornsrl.itch.io/cut-fill |
+> | **Mirror** | https://zacht-gif.github.io/cut-and-fill/ — live, deliberately unpromoted (see the announcement template) |
+> | **Repo** | https://github.com/zacht-gif/cut-and-fill |
+>
+> Still genuinely open: the social push in "Day 2-3" never happened, and the
+> itch page's description is still rendering raw Markdown — the corrected,
+> paste-ready copy is in `assets/itch-description.txt`.
+
 ## Pre-Launch Verification (24 Hours Before)
 
 ### Code & Build
@@ -43,16 +58,16 @@
 
 ```bash
 # If not already done:
-cd path/to/cut-and-fill
+cd C:\dev\projects\cut-and-fill
 
-git remote add origin https://github.com/YOUR_USERNAME/cut-and-fill.git
+git remote add origin https://github.com/zacht-gif/cut-and-fill.git
 git branch -M main
 git push -u origin main
 ```
 
 ### Step 2: Enable GitHub Pages
 
-1. Go to https://github.com/YOUR_USERNAME/cut-and-fill/settings
+1. Go to https://github.com/zacht-gif/cut-and-fill/settings
 2. Navigate to "Pages" section (left sidebar)
 3. Under "Source", select:
    - Branch: `main`
@@ -62,12 +77,12 @@ git push -u origin main
 
 **Verification:**
 ```
-Game will be live at: https://YOUR_USERNAME.github.io/cut-and-fill/
+Game will be live at: https://zacht-gif.github.io/cut-and-fill/
 ```
 
 ### Step 3: Test GitHub Pages
 
-- [ ] Navigate to `https://YOUR_USERNAME.github.io/cut-and-fill/`
+- [ ] Navigate to `https://zacht-gif.github.io/cut-and-fill/`
 - [ ] Game loads and renders correctly
 - [ ] Play through a level
 - [ ] Open settings, toggle options
@@ -94,7 +109,7 @@ git push
 2. Click "New Project"
 3. Fill in:
    - **Title:** Cut & Fill
-   - **URL:** cut-and-fill
+   - **URL:** cut-fill
    - **Classifier:** Game
    - **Kind:** HTML
 4. Click "Create Project"
@@ -104,7 +119,7 @@ git push
 1. **Description** → Copy from ITCH-IO-PAGE.md (Long Description section)
 2. **Short Description** → Copy tagline: "A tactile puzzle game about moving earth and avoiding traffic"
 3. **Tags** → puzzle, game, web, offline, browser, strategy
-4. **Author** → Your name
+4. **Author** → thornsRL
 5. **Release Date** → Today's date (drives itch.io visibility)
 
 ### Step 3: Upload Game
@@ -144,7 +159,7 @@ git push
 4. Click "Publish" button
 5. Confirm publication
 
-**Live at:** https://itch.io/games/cut-and-fill (or your custom URL)
+**Live at:** https://thornsrl.itch.io/cut-fill
 
 ### Step 6: Test Itch.io
 
@@ -291,11 +306,16 @@ A tactile puzzle game about moving earth and avoiding traffic.
 Works offline, no ads, single HTML file.
 
 Play free:
-🔗 https://itch.io/games/cut-and-fill
-🔗 https://YOUR_USERNAME.github.io/cut-and-fill/
+🔗 https://thornsrl.itch.io/cut-fill
 
 #indiegame #puzzle #gamedev
 ```
+
+**One link, and it is the itch one.** The GitHub Pages mirror stays out of every
+announcement, post and README on purpose: itch ranks games partly on plays,
+views and ratings, so a play that lands on Pages is a discovery signal itch
+never sees. Its absence here is deliberate, not an oversight — don't add it
+back without deciding to change that strategy.
 
 ### Feedback Request
 
@@ -328,7 +348,7 @@ When live:
 ## Reference Links
 
 - **Itch.io Dashboard:** https://itch.io/dashboard
-- **GitHub Settings:** https://github.com/YOUR_USERNAME/cut-and-fill/settings
+- **GitHub Settings:** https://github.com/zacht-gif/cut-and-fill/settings
 - **GitHub Pages Docs:** https://docs.github.com/en/pages
 - **Itch.io Help:** https://itch.io/docs
 - **Game Distribution:** Consider cross-posting to IndieDB, GameJolt, etc.
