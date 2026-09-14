@@ -955,6 +955,14 @@ let pileEls=[], vehEls=[], cellEls=[], dozerEl=null, rotEl=null, hintEl=null, la
 let SV=load();
 let best=SV.best;
 let startTime=null, timerInterval=null;  // for time trial mode
+/* Time spent with the page hidden is not time spent playing. A phone that
+   locks, an incoming call, switching apps for a moment — none of those are the
+   player thinking, and on a phone most of them are not the player's choice at
+   all. pausedMs banks the hidden stretches that have ended; hiddenAt marks one
+   still open, so the displayed clock stops the instant you look away rather
+   than catching up when you come back. */
+let pausedMs=0, hiddenAt=null;
+const clockNow = () => typeof performance!=="undefined"?performance.now():Date.now();
 
 function load(){
   let raw={};
@@ -1075,11 +1083,16 @@ function save(){
 const bestSlot = () => custom ? custom.key : LEVELS[idx].name;
 const bestHere = () => { const k=bestSlot(); return k==null?undefined:best[diff][k]; };
 
-const getElapsedTime = () => {
-  if(!startTime) return 0;
-  const now=typeof performance!=="undefined"?performance.now():Date.now();
-  return (now-startTime)/1000;
-};
+/* The clock arithmetic, kept as a function so the suite can check it against
+   synthetic stamps rather than trying to steer performance.now(). Clamped at
+   zero: the subtractions are independent, and a time that ran backwards would
+   be recorded as somebody's best. */
+function playedMs(now,start,paused,hiddenSince){
+  if(start==null) return 0;
+  const stillHidden = hiddenSince==null ? 0 : now-hiddenSince;
+  return Math.max(0, now-start-paused-stillHidden);
+}
+const getElapsedTime = () => playedMs(clockNow(),startTime,pausedMs,hiddenAt)/1000;
 const bestTimeHere = () => {
   if(!SV.timeTrial) return null;
   const k=bestSlot();
@@ -2018,6 +2031,7 @@ function startLevel(def,label){
   if(timerInterval) clearInterval(timerInterval);
   timerInterval=null;
   startTime=null;
+  pausedMs=0; hiddenAt=null;   // a new run inherits nothing from the last one
   lv=parse(def,diff);
   st=freshState();
   past=[]; won=false; failed=null; hint=null;
@@ -2603,6 +2617,32 @@ stageEl.addEventListener("touchend",e=>{
 
 addEventListener("resize",()=>{ if(lv){ fitCell(); render(); } });
 
+/* A run that was interrupted should not be a run that was lost. The timer is
+   wall clock, so without this a locked screen or a five minute phone call goes
+   straight onto your time — and the mode's whole appeal is beating your own
+   number, which an interruption quietly makes unbeatable.
+
+   visibilitychange rather than blur: glancing at another window while the game
+   is still on screen is not an interruption, and pausing for it would be the
+   wrong call. Only actually leaving the page counts.
+
+   This does let someone hide the tab to think for free. It is a real hole and
+   still the right trade: there is no leaderboard, the number is only ever
+   shared about yourself, and you cannot see the board while it is hidden.
+   Refusing to pause would penalise every player who owns a phone in order to
+   close a cheat that costs nobody anything. */
+document.addEventListener("visibilitychange",()=>{
+  if(startTime==null||won||failed) return;
+  if(document.hidden){
+    if(hiddenAt==null) hiddenAt=clockNow();
+    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+  }else{
+    if(hiddenAt!=null){ pausedMs+=clockNow()-hiddenAt; hiddenAt=null; }
+    if(SV.timeTrial&&!timerInterval) timerInterval=setInterval(render,50);
+    render();
+  }
+});
+
 const savedDiff=localStorage.getItem(SAVE_KEY+".diff");
 diff=DIFFS[savedDiff]?savedDiff:"operator";
 $("#diffTag").textContent=DIFFS[diff].name;
@@ -2989,6 +3029,21 @@ async function selfTest(){
      design, so runTitle() bails before it ever reaches the guard — a test
      written here would pass without ever exercising it. Both are checked
      against a real engine instead, with Emulation.setEmulatedMedia. */
+
+  /* 6k. the time-trial clock. Hidden time is not played time, and the
+     arithmetic is where that can silently go wrong — three independent
+     subtractions, one of which keeps growing while the page is away. Checked
+     against synthetic stamps so the assertions are exact rather than timing
+     dependent. */
+  ok("no run means no elapsed time", playedMs(5000,null,0,null)===0);
+  ok("an uninterrupted run is plain wall clock", playedMs(5000,1000,0,null)===4000);
+  ok("a finished interruption is taken off the clock",
+     playedMs(5000,1000,1500,null)===2500);
+  ok("an interruption still open is taken off as it runs",
+     playedMs(5000,1000,0,4000)===3000);
+  ok("banked and open interruptions both come off",
+     playedMs(9000,1000,2000,7000)===4000);
+  ok("the clock can never run backwards", playedMs(1000,1000,5000,null)===0);
 
   // 6f. an open panel must be detected, or keystrokes reach the board behind it
   closeAllOverlays();
