@@ -403,6 +403,31 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 .sw.d{background:var(--dirt)}
 .sw.v{background:var(--veh)}
 .sw.g{background:#141f27;box-shadow:inset 0 3px 0 var(--gate),inset 0 -3px 0 var(--gate)}
+/* ---------------- reduced motion ----------------
+   Remove the movement, keep the meaning. Two of these animations are not
+   decoration: the danger pulse marks where traffic lands next turn, and the
+   marsh ripple marks ground that sinks you. Both keep their marks at full
+   strength here and only stop moving — and stopping the pulse actually leaves
+   the hazard stripes MORE visible, since its keyframe dips them to .55.
+
+   The two infinite loops are the reason this block exists. They run for as
+   long as the page is open, so both the vestibular risk and the battery cost
+   live there rather than in a 160ms nudge.
+
+   A refused move still has to say so. Sound can be muted and navigator.vibrate
+   is Android-only, so on a desktop the shake is the *only* signal that a move
+   was rejected — losing it would mean pressing a direction and getting no
+   answer at all. It becomes a flash instead: same information, no travel. */
+@keyframes refuse{50%{box-shadow:0 0 0 2px var(--danger)}}
+@media (prefers-reduced-motion: reduce){
+  .c.marsh::after,
+  .c.danger .mk,
+  .c.hole.filled,
+  .card,.titlecard,#wStars b.on{animation:none}
+  /* pieces arrive rather than sliding there */
+  .ent,.dozer .rot,.veh,.veh .rot,.pile.gone{transition:none}
+  #board.shake{animation:refuse .22s ease-out}
+}
 </style>
 </head>
 <body>
@@ -2590,6 +2615,17 @@ if(ADS.enabled || /[?&]ads=1/.test(typeof location!=="undefined"&&location.searc
    A scripted rerun of the first level, built from the same cell and entity
    classes the board uses, so the front door is made of the actual game
    rather than a picture of it. */
+/* One place that asks, so CSS and JS cannot disagree about it. A function
+   declaration rather than a const because it is consulted from runTitle(),
+   which runs during boot — hoisting removes the ordering question entirely.
+   Defensive about matchMedia: tools/test.mjs boots this file against a stub
+   DOM that has none, and a missing API has to read as "no preference stated"
+   rather than throwing on the way in. */
+function prefersReducedMotion(){
+  return typeof matchMedia==="function" &&
+         !!matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 let titleTimer=null;
 function buildTitle(){
   const strip=$("#titleStrip");
@@ -2630,6 +2666,12 @@ function runTitle(){
   let step=0;
   frames[0]();
   clearInterval(titleTimer);
+  /* The front door replays a level on a loop before the player has touched
+     anything — an animation nobody asked to start, which is the case this
+     preference exists for. frames[0]() has already drawn the opening
+     position, so leaving it there still shows the game made of the real
+     board; it just stops moving. */
+  if(prefersReducedMotion()){ titleTimer=null; return; }
   titleTimer=setInterval(()=>{ step=(step+1)%frames.length; frames[step](); },620);
 }
 function closeTitle(){
@@ -2928,6 +2970,25 @@ async function selfTest(){
      !document.body.classList.contains("pad"));
   SV.touch="pad"; paintTouchMode();
   ok("pad mode shows it again", document.body.classList.contains("pad"));
+
+  /* 6j. reduced motion. The CSS half cannot be reached from here, but the two
+     things that can go wrong in JS both can: mis-reading the preference, and
+     throwing on a DOM that has no matchMedia at all — which is exactly the DOM
+     this suite runs in, so that third case is not hypothetical. */
+  const hadMM = "matchMedia" in globalThis, realMM = globalThis.matchMedia;
+  globalThis.matchMedia = (q)=>({matches:/prefers-reduced-motion: reduce/.test(q)});
+  ok("a stated reduced-motion preference is detected", prefersReducedMotion()===true);
+  globalThis.matchMedia = ()=>({matches:false});
+  ok("no stated preference reads as no preference", prefersReducedMotion()===false);
+  delete globalThis.matchMedia;
+  ok("a DOM without matchMedia is not a motion preference", prefersReducedMotion()===false);
+
+  if(hadMM) globalThis.matchMedia = realMM; else delete globalThis.matchMedia;
+  /* Not covered here, deliberately: that runTitle() actually stops looping,
+     and that the CSS block lands. This DOM's querySelectorAll returns [] by
+     design, so runTitle() bails before it ever reaches the guard — a test
+     written here would pass without ever exercising it. Both are checked
+     against a real engine instead, with Emulation.setEmulatedMedia. */
 
   // 6f. an open panel must be detected, or keystrokes reach the board behind it
   closeAllOverlays();
