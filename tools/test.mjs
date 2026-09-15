@@ -31,6 +31,7 @@ class El {
     this.children = [];
     this._cls = new Set();
     this.dataset = {};
+    this._attrs = new Map();
     this.textContent = "";
     this.title = "";
     this.disabled = false;
@@ -58,6 +59,14 @@ class El {
   set className(v) {
     this._cls = new Set(String(v).split(/\s+/).filter(Boolean));
   }
+  /* aria-label and aria-current ride on the level picker and the drawer
+     toggle, so the stub has to hold an attribute even though nothing here
+     reads one back. Plain properties were enough until the picker started
+     naming itself for a screen reader. */
+  setAttribute(k, v) { this._attrs.set(k, String(v)); }
+  getAttribute(k) { return this._attrs.has(k) ? this._attrs.get(k) : null; }
+  hasAttribute(k) { return this._attrs.has(k); }
+  removeAttribute(k) { this._attrs.delete(k); }
   appendChild(c) { this.children.push(c); return c; }
   removeChild(c) { this.children = this.children.filter((x) => x !== c); }
   addEventListener() {}
