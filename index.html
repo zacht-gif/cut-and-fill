@@ -53,6 +53,15 @@ body{
   padding:16px 12px 28px;gap:14px;
   -webkit-user-select:none;user-select:none;overflow-x:hidden;
 }
+/* Nothing in this column may be squashed. body is a height:100% flex column
+   and on a phone the content is taller than it, so every child still carrying
+   the default flex-shrink:1 is fair game — the browser shrinks them to fit
+   rather than letting the page scroll. #stage opted out long ago (flex:0 0
+   auto, with its own note below); .stats never did, and was being crushed
+   from 47px to literally zero. The Moves, Par, Best, Filled and Dirt-left
+   readouts were invisible on every phone, in a game scored on moves against
+   par. The page scrolling is the correct outcome, not silently erased rows. */
+body > *{flex-shrink:0}
 
 header{width:100%;max-width:820px;display:flex;align-items:baseline;
   justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -428,6 +437,52 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 .sw.d{background:var(--dirt)}
 .sw.v{background:var(--veh)}
 .sw.g{background:#141f27;box-shadow:inset 0 3px 0 var(--gate),inset 0 -3px 0 var(--gate)}
+/* ---------------- short screens ----------------
+   Keyed on HEIGHT, not width. What a phone runs out of is vertical room, and
+   390x556 portrait and 844x344 landscape are both short while being nothing
+   alike in width — a max-width query catches one and misses the other.
+
+   Placed here, after every base rule, because that is the whole difference
+   between working and not. The older max-width:560px block sits ABOVE the
+   #objectives and .stat declarations it means to override, so at equal
+   specificity the base rules win and none of it has ever applied on a phone.
+
+   Together with the labels shortened to "All holes / At par / Unaided", this
+   takes the objectives from two lines to one, the header from three rows to
+   two, and 6px off each of six flex gaps. */
+@media (max-height:700px){
+  body{gap:8px;padding:10px 12px 12px}
+  header{gap:8px}
+  h1{font-size:16px}
+  /* forces the level line onto its own row, leaving title + gear on the first */
+  .sub{flex:1 0 100%;font-size:10px}
+  #objectives{gap:10px;font-size:10px}
+  .stats{gap:5px}
+  .stat{min-width:56px;padding:3px 7px}
+  .stat b{font-size:13px}
+  .stat i{font-size:8px;letter-spacing:.08em}
+  .row{gap:6px}
+  #drawerToggle{padding:6px 12px}
+  /* the pad keeps its full size, same reasoning as the width query above:
+     it is the one control pressed without looking */
+
+  /* The d-pad is the largest single thing on the screen at 192px, and height
+     is the only thing in short supply, so this is where the room is. Rows go
+     56px to 46px and the gaps 12px to 8px — 38px back, which is what lifts
+     the whole pad above the fold on every phone measured. 46px still clears
+     the 44px touch-target guideline.
+
+     This replaced an earlier attempt that moved these buttons into a rail
+     beside the board. The rail was the obvious idea and it measured worse.
+     Freeing this much vertical space flips most levels from height-limited
+     to WIDTH-limited, so a 60px rail came straight off the board: 2-3px off
+     the average cell everywhere and four extra levels pinned to the 16px
+     floor at 344px wide. Shrinking the pad costs no width, so it beat the
+     rail at every screen size tested. */
+  #pad{grid-template-rows:repeat(3,46px);gap:8px}
+  #pad button{font-size:18px}
+}
+
 /* ---------------- reduced motion ----------------
    Remove the movement, keep the meaning. Two of these animations are not
    decoration: the danger pulse marks where traffic lands next turn, and the
@@ -470,11 +525,14 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 
 <header>
   <h1>Cut &amp; <span>Fill</span></h1>
+  <!-- Settings sits beside the wordmark rather than inside .sub, so the header
+       is two rows on a phone instead of three: title + gear, then the level
+       line. Inside .sub it was wrapping onto a line of its own. -->
+  <button id="gearTag">⚙ Settings</button>
   <div class="sub">
     <span id="levelName">Level 1</span> &nbsp;
     <span id="sStars">★ 0/75</span> &nbsp;
     <span id="shiftNow">Operator</span>
-    <button id="gearTag">⚙ Settings</button>
   </div>
 </header>
 
@@ -491,14 +549,17 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 <div class="banner" id="banner"></div>
 
 <div id="objectives">
-  <span class="ob" id="ob0"><i></i><span class="t">Fill every hole</span></span>
-  <span class="ob" id="ob1"><i></i><span class="t">Finish at par</span></span>
-  <span class="ob" id="ob2"><i></i><span class="t">No hint, no undo</span></span>
+  <span class="ob" id="ob0"><i></i><span class="t">All holes</span></span>
+  <span class="ob" id="ob1"><i></i><span class="t">At par</span></span>
+  <span class="ob" id="ob2"><i></i><span class="t">Unaided</span></span>
 </div>
 
 <div id="stage"><div id="board"></div></div>
 
-<div class="row">
+<!-- id, not just .row: `.row` also matches the rows inside the drawer and the
+     win/lose cards, so anything aimed at these four buttons needs its own
+     handle rather than restyling every row on the page -->
+<div class="row" id="actions">
   <button id="bWait">◍ Wait</button>
   <button id="bUndo">↶ Undo</button>
   <button id="bReset">⟳ Restart</button>
@@ -1899,23 +1960,40 @@ function fitCell(){
   const bodyCS=getComputedStyle(document.body);
   const bodyGap=parseFloat(bodyCS.rowGap)||0;
   const gap=parseFloat(getComputedStyle(boardEl).rowGap)||2;
-  const chrome=px(document.body,"paddingLeft","paddingRight")
-              +px(stageEl,"paddingLeft","paddingRight",
-                          "borderLeftWidth","borderRightWidth");
-  const availW=Math.min(document.documentElement.clientWidth-chrome, 860);
-  // Measure everything else on the page rather than guessing a constant, so
-  // the board adapts to the drawer opening, ad slots appearing, or any row
-  // added later. Overlays are excluded — they float above, costing no height.
-  let used=px(document.body,"paddingTop","paddingBottom");
+  const colGap=parseFloat(bodyCS.columnGap)||0;
+
+  /* One pass, sorting every sibling into above/below the board or beside it.
+     Above or below costs the board HEIGHT; beside costs it WIDTH. Measuring
+     rather than naming, because on a short screen the action buttons move
+     into a rail alongside the stage — a rule that knew their id would go
+     wrong the next time the layout moved, which is exactly how the literals
+     above went wrong. Charging a rail as height would waste a row that is
+     not there; charging it as nothing at all sized the board to a width it
+     did not have and clipped every level in the campaign. */
+  let used=px(document.body,"paddingTop","paddingBottom"), beside=0;
+  const sr=stageEl.getBoundingClientRect();
   for(const el of document.body.children){
     if(el===stageEl || (el.classList&&el.classList.contains("overlay"))) continue;
     // anchored elements are already paid for by the body's padding; counting
     // the rect as well would reserve a 50px banner twice over
-    if(getComputedStyle(el).position==="fixed") continue;
-    const h=el.getBoundingClientRect().height;
-    if(h) used+=h+bodyGap;
+    const pos=getComputedStyle(el).position;
+    if(pos==="fixed"||pos==="absolute") continue;
+    const r=el.getBoundingClientRect();
+    if(!r.height) continue;
+    if(r.bottom>sr.top+1 && r.top<sr.bottom-1) beside+=r.width+colGap;
+    else used+=r.height+bodyGap;
   }
-  const availH=Math.max(160, window.innerHeight-used-8);
+
+  const chrome=px(document.body,"paddingLeft","paddingRight")
+              +px(stageEl,"paddingLeft","paddingRight",
+                          "borderLeftWidth","borderRightWidth");
+  /* The stage's own vertical padding and border were never taken off, only
+     its horizontal ones, so the board was always budgeted the thickness of
+     its own frame more height than the page had room for. */
+  const stageV=px(stageEl,"paddingTop","paddingBottom",
+                          "borderTopWidth","borderBottomWidth");
+  const availW=Math.min(document.documentElement.clientWidth-chrome-beside, 860);
+  const availH=Math.max(160, window.innerHeight-used-stageV-8);
   const byW=(availW-(lv.w-1)*gap)/lv.w;
   const byH=(availH-(lv.h-1)*gap)/lv.h;
   cellPx=Math.max(16,Math.floor(Math.min(byW,byH,56)));
@@ -2011,7 +2089,7 @@ function render(){
   setOb(1, isWon(st)&&st.moves<=lv.par ? "done"
          : st.moves>lv.par ? "lost" : "open");
   setOb(2, (usedHint||usedUndo) ? "lost" : (isWon(st)?"done":"open"));
-  $("#ob1").querySelector(".t").textContent="Finish at par ("+lv.par+")";
+  $("#ob1").querySelector(".t").textContent="At par ("+lv.par+")";
 
   $("#bUndo").disabled=past.length===0;
   $("#bPrev").disabled=!custom&&idx===0;
