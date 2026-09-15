@@ -12,6 +12,7 @@ machines, git identity and syncing; this file is only about the game.
 | `tools/test.mjs` | the JS half — boots the page against a stub DOM, runs `selfTest()` |
 | `tools/analyze.py` | measures trap density and lethality. This is what orders the campaign |
 | `tools/shots.mjs` | renders the store imagery out of the real game over CDP |
+| `tools/publish.mjs` | the deploy. Proves the game works, then pushes it to itch |
 | `tools/codemap.py` | regenerates `CODE-MAP.md`, the line index of `index.html` |
 | `CODE-MAP.md` | generated. Where everything in `index.html` lives, by line |
 
@@ -109,11 +110,29 @@ visit.
 
 - **`validate.py` takes over two minutes** on the full campaign. It has not
   hung. Budget for it, or scope it with `--diff`.
-- **A rebuild is not a deploy.** itch serves whatever `index.html` was last
-  *uploaded* through its dashboard; nothing about committing or pushing touches
-  it. To check what players actually have, fetch the embed URL and diff it
-  against local — the only legitimate difference is itch's injected
-  `htmlgame.js`.
+- **A rebuild is not a deploy.** itch serves whatever was last pushed to the
+  channel; nothing about committing or pushing to git touches it.
+  `node tools/publish.mjs` is the one command — it proves the game works, then
+  sends `index.html` to `thornsrl/cut-fill:html5` with butler. To check what
+  players actually have, fetch the embed URL and diff it against local — the
+  only legitimate difference is itch's injected `htmlgame.js`.
+- **And a push is not a deploy either, until the upload swaps.** `butler
+  status` describes the *channel*; the game page embeds the *upload*, and the
+  two agree only once itch has swapped. On 2026-09-14 butler reported build
+  #1980281 complete while the page still served #1973885 — the build from the
+  previous month, with none of the new work in it. The swap took about 40
+  seconds. Checking once, straight after the push, reports success at exactly
+  the moment it is false. Resolve what is really being served, and poll until
+  the build id moves:
+
+  ```bash
+  curl -s https://itch.io/embed-upload/19217413 | grep -o 'html/19217413-[0-9]*'
+  ```
+
+  `19217413` is the upload id and is stable; the number after the dash is the
+  build, and that is the thing to watch. Per-build URLs are not addressable
+  directly — one itch is not currently serving returns 404 — so the
+  embed-upload lookup is the way in.
 - **itch's description field is rich text, not Markdown.** Pasting Markdown
   puts literal `###` and `**` on the live page, which is what happened at
   launch and stood for a month. The paste-ready copy is
