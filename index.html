@@ -139,12 +139,32 @@ body.pad #stage{touch-action:pan-y}
     rgba(79,209,197,.28) 0 2px,transparent 2px 6px)}
 @keyframes tamp{0%{transform:scale(.82);filter:brightness(2.2)}100%{transform:scale(1)}}
 
-.c.marsh{background:var(--marsh);
-  box-shadow:inset 0 0 0 2px var(--marsh-edge), inset 0 0 18px -6px #000;border-radius:4px}
+/* Soft ground is terrain you sink into, and it was drawn as a flat teal box.
+   The hole beside it already reads as a real pit from nothing but a
+   top-weighted inner shadow, and the dirt pile reads as raised from a
+   highlight along its top and a shade under its bottom — marsh was the one
+   piece of terrain whose art said nothing about what it does to you.
+
+   Three cues here and not one of them is hue: the surface sits below the
+   rim, a wet sheen gathers toward the bottom where the light lands, and the
+   near edge catches that light. Depth also buys separation from the hint
+   ring, which is a 2px teal outline of almost exactly this colour — they
+   measure 17 apart in Lab, close enough to hesitate over on a marsh level. */
+.c.marsh{
+  background:
+    linear-gradient(180deg,
+      rgba(0,0,0,.58) 0%, rgba(0,0,0,.16) 42%,
+      rgba(42,161,152,.08) 74%, rgba(150,244,234,.24) 100%),
+    var(--marsh);
+  box-shadow:
+    inset 0 0 0 2px var(--marsh-edge),
+    inset 0 7px 13px -6px #000,
+    inset 0 -3px 0 rgba(150,244,234,.26);
+  border-radius:4px}
 .c.marsh::after{content:"";position:absolute;inset:0;border-radius:4px;
   background:
-    repeating-linear-gradient(0deg,transparent 0 5px,rgba(42,161,152,.30) 5px 6px),
-    repeating-linear-gradient(90deg,transparent 0 9px,rgba(42,161,152,.18) 9px 10px);
+    repeating-linear-gradient(0deg,transparent 0 5px,rgba(42,161,152,.26) 5px 6px),
+    repeating-linear-gradient(90deg,transparent 0 9px,rgba(42,161,152,.15) 9px 10px);
   animation:ripple 3.2s linear infinite}
 @keyframes ripple{to{background-position:0 12px, 20px 0}}
 
