@@ -71,8 +71,22 @@ body{
    auto, with its own note below); .stats never did, and was being crushed
    from 47px to literally zero. The Moves, Par, Best, Filled and Dirt-left
    readouts were invisible on every phone, in a game scored on moves against
-   par. The page scrolling is the correct outcome, not silently erased rows. */
-body > *{flex-shrink:0}
+   par. The page scrolling is the correct outcome, not silently erased rows.
+
+   #hud > * and #play > * are on this rule because it matches on DOM parent,
+   not on which elements are actually the flex items. Those two wrappers are
+   display:contents in portrait, so their children ARE body's flex items —
+   but `body > *` stops matching them, and wrapping .stats brought the whole
+   bug straight back, zero-height row and all. In landscape the wrappers are
+   real flex columns whose children must not be squashed either, so the same
+   rule is wanted in both layouts. */
+body > *, #hud > *, #play > *{flex-shrink:0}
+
+/* Transparent in portrait: display:contents means these two carry no box, so
+   their children are body's flex items exactly as they were before the
+   wrappers existed. They only become real boxes when the phone is turned
+   sideways - see the landscape block near the bottom of this stylesheet. */
+#hud,#play{display:contents}
 
 header{width:100%;max-width:820px;display:flex;align-items:baseline;
   justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -539,6 +553,95 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   #pad button{font-size:18px}
 }
 
+/* ---------------- phone held sideways ----------------
+   Portrait is one column and height is already the scarce thing. Turned
+   sideways it gets much worse: about 520px of stacked rows into 360-430px of
+   viewport. Measured on five phones, every one of them the same - the board
+   bottoms out on its 16px floor while using barely a quarter of the screen
+   width, the page overflows by 150-220px, and the d-pad sits 110-180px below
+   the fold. It was not playable sideways.
+
+   So the column becomes three: what you READ in a rail on the left, the board
+   in the middle, what you PRESS under the right thumb, which is where that
+   thumb already is when a phone is held sideways.
+
+   This is the same rail idea that measured WORSE in portrait a few rules up,
+   and the reason it wins here is the reason it lost there. A rail costs width
+   and buys height. In portrait width is the scarce one - 344 to 430px - so
+   the trade runs backwards. In landscape there is 667-932px of width and
+   almost no height, so it runs the right way round.
+
+   Deliberately not overflow:hidden. If something here does not fit, a page
+   that scrolls is the honest outcome; a page that silently clips a control
+   is the bug this file has already been bitten by once. */
+@media (orientation:landscape) and (max-height:520px){
+  body{
+    height:100vh; height:100dvh;
+    flex-direction:row; align-items:center; justify-content:center;
+    gap:10px; padding:8px 10px;
+  }
+  #hud,#play{display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:6px;flex:0 0 auto}
+  /* 120px, measured. Narrower rails buy board: across all 25 levels, going
+     150->120 here and 56->50 on the pad columns lifts the average cell from
+     26 to 31px on the smallest phone. The gain tapers on wider screens (49
+     to 50 on a 15 Pro Max) because those are already height-bound, which is
+     the shape you would expect and is why the trade stops there. */
+  #hud{max-width:120px}
+
+  /* 120px of rail, so the header stacks rather than spreading across a line */
+  header{flex-direction:column;align-items:center;gap:2px;text-align:center}
+  h1{font-size:13px;letter-spacing:.14em}
+  .sub{flex:0 0 auto;font-size:9px;justify-content:center}
+
+  .stats{flex-wrap:wrap;justify-content:center;overflow:visible;gap:4px;
+    width:auto}
+  .stat{min-width:0;padding:2px 5px}
+  .stat b{font-size:11px}
+  .stat i{font-size:7px;letter-spacing:.06em}
+
+  #objectives{flex-direction:column;align-items:flex-start;gap:3px;
+    font-size:9px;width:auto}
+
+  /* 2x2, not a 4-wide row: the right rail carries these, the pad and the
+     drawer button inside 360px of height */
+  #actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:auto}
+  #actions button{padding:5px 7px;font-size:9px;letter-spacing:.04em}
+
+  /* 50x46 still clears the 44px touch-target guideline */
+  #pad{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,46px);
+    gap:6px}
+  #pad button{font-size:17px}
+
+  /* The note is centred at the top of the viewport normally, which works in
+     portrait because the board starts well below the header. Here the board
+     is vertically centred and nearly fills the height, so a band across the
+     top clipped up to 15px off its first row on 18 of 25 levels, on four of
+     the five phones measured. Moved over the left rail instead: capped to
+     the rail's width so it cannot reach the board at all, and covering the
+     title rather than the objectives, the title being the one thing there
+     that is decoration. */
+  #gen{left:10px;right:auto;translate:none;top:8px;
+    max-width:126px;text-align:left;letter-spacing:.04em}
+
+  /* Pinned, and above the drawer. The drawer covers the whole screen here,
+     which buries the only control that closes it - and Escape does not help
+     because the drawer is not one of OVERLAY_IDS. Fixed puts it on top of
+     its own panel, so the button that opens it is the button that shuts it.
+     fitCell skips fixed elements, so this costs the board nothing. */
+  #drawerToggle{position:fixed;right:10px;bottom:8px;z-index:17;
+    padding:4px 10px;font-size:9px}
+
+  /* Open, the drawer is a full-screen panel rather than a fourth column: 25
+     level tiles and the help text have nowhere to go in a 390px-tall row, and
+     it is the one thing never done mid-move. fitCell skips fixed elements, so
+     the board is not resized behind it. */
+  #drawer:not(.closed){
+    position:fixed;inset:0;z-index:16;overflow:auto;max-width:none;
+    /* opaque, not .97 - the stats row behind it ghosted through */
+    background:var(--bg);padding:14px 14px 46px}
+}
+
 /* ---------------- reduced motion ----------------
    Remove the movement, keep the meaning. Two of these animations are not
    decoration: the danger pulse marks where traffic lands next turn, and the
@@ -579,6 +682,13 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
 
 <div class="adslot" id="adTop"><span>advertisement</span></div>
 
+<!-- #hud and #play are display:contents until the phone is turned sideways,
+     so in portrait they are not boxes at all and the page is the same single
+     column it always was. Sideways they become the two rails either side of
+     the board. #drawerToggle sits inside #play rather than loose in the body
+     so that the portrait order is unchanged - #gen between them is fixed and
+     out of flow, so moving past it changes nothing. -->
+<div id="hud">
 <header>
   <h1>Cut &amp; <span>Fill</span></h1>
   <!-- Settings sits beside the wordmark rather than inside .sub, so the header
@@ -609,12 +719,14 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <span class="ob" id="ob1"><i></i><span class="t">At par</span></span>
   <span class="ob" id="ob2"><i></i><span class="t">Unaided</span></span>
 </div>
+</div>
 
 <div id="stage"><div id="board"></div></div>
 
 <!-- id, not just .row: `.row` also matches the rows inside the drawer and the
      win/lose cards, so anything aimed at these four buttons needs its own
      handle rather than restyling every row on the page -->
+<div id="play">
 <div class="row" id="actions">
   <button id="bWait">◍ Wait</button>
   <button id="bUndo">↶ Undo</button>
@@ -628,9 +740,10 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <span class="sp"></span><button data-d="2">▼</button><span class="sp"></span>
 </div>
 
-<div id="gen"></div>
-
 <button id="drawerToggle" aria-expanded="true" aria-controls="drawer">☰ Levels &amp; Help</button>
+</div>
+
+<div id="gen"></div>
 
 <div id="drawer">
   <div class="row">
@@ -2005,6 +2118,20 @@ function buildBoard(){
  * assuming it — budgeting only for the viewport used to push wide levels
  * off the left edge, where `overflow-x:hidden` clipped them for good.
  */
+/* A display:contents element generates no box at all, so its CHILDREN are the
+   real flex items. Walk through such an element rather than past it: #hud and
+   #play are display:contents in portrait, and stepping over them dropped the
+   header, the stats row and the objectives out of the height budget entirely.
+   The board was then sized for room the page did not have and overflowed by
+   up to 190px. In landscape those two are real flex columns, so they yield
+   themselves — which is exactly the one-box-per-rail the width sum needs. */
+function* layoutKids(root){
+  for(const el of root.children){
+    if(getComputedStyle(el).display==="contents") yield* layoutKids(el);
+    else yield el;
+  }
+}
+
 function fitCell(){
   const px=(el,...p)=>{ const cs=getComputedStyle(el);
     return p.reduce((n,k)=>n+parseFloat(cs[k]||0),0); };
@@ -2028,7 +2155,7 @@ function fitCell(){
      did not have and clipped every level in the campaign. */
   let used=px(document.body,"paddingTop","paddingBottom"), beside=0;
   const sr=stageEl.getBoundingClientRect();
-  for(const el of document.body.children){
+  for(const el of layoutKids(document.body)){
     if(el===stageEl || (el.classList&&el.classList.contains("overlay"))) continue;
     // anchored elements are already paid for by the body's padding; counting
     // the rect as well would reserve a 50px banner twice over
