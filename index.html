@@ -299,8 +299,33 @@ body.ads .adslot{display:flex}
 .earned{display:inline-block;margin-top:6px;color:var(--dozer)}
 .lv .clean{color:var(--accent);opacity:.9}
 
-#gen{min-height:16px;font-size:11px;color:var(--ink-dim);letter-spacing:.08em;
-  text-align:center}
+/* Transient, so it reserves no height. It used to hold a permanent 16px row
+   plus the body's flex gap — 30px of a phone screen, standing by for a line
+   that is empty nearly all the time.
+
+   Out of the flow rather than merely hidden when empty: a message arriving
+   mid-move must never shove the board or the d-pad under a thumb that is
+   already travelling. That is the same reasoning the ad slots above are built
+   on, and hiding an in-flow row would have broken it exactly when the player
+   is most committed to a tap.
+
+   Pinned to the TOP of the viewport, not the bottom. Anchored to the bottom it
+   landed squarely on the left/right/wait row of the d-pad — the page overflows
+   on a phone, so "bottom of the viewport" is the middle of the controls, and
+   covering a button you are about to press is worse than the row this
+   replaced. Nothing above the board is interactive mid-move, so the top can
+   only ever obscure something you have already read.
+
+   Sized to its content and capped, so "Surveying a new site… (247 tried)"
+   wraps at a readable width instead of stretching across a monitor — and, on
+   a phone, gets the full body width rather than the board's narrower box. */
+#gen{position:fixed;left:50%;translate:-50% 0;top:10px;z-index:14;
+  width:max-content;max-width:min(520px,calc(100vw - 20px));
+  padding:7px 12px;font-size:11px;color:var(--ink-dim);letter-spacing:.08em;
+  text-align:center;background:rgba(11,20,26,.96);
+  border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 10px 30px -10px #000;pointer-events:none}
+#gen:empty{display:none}
 #gen.busy{color:var(--accent)}
 .hintmark{display:grid;place-items:center;z-index:4;pointer-events:none;opacity:0;
   font-size:calc(var(--cell) * .62);color:var(--accent);font-weight:700;
@@ -949,6 +974,20 @@ let lv=null, st=null, past=[], idx=0, won=false, failed=null;
 let diff="operator";
 let custom=null;        // {def,label,key} while playing a generated site
 let hint=null;          // {r,c,ch} one suggested move
+
+/* The note under the board is a caption for a moment — a hint for *this*
+   position, a site just generated — and moments end. Nothing used to clear
+   it, so "Hint: go right — 5 moves left from here." would sit there through
+   the rest of the session: measured still on screen twelve levels after the
+   position it described, quietly giving advice about a board that was gone.
+   Cleared wherever `hint` itself is cleared, since the text is that
+   highlight's caption and the two drifting apart is what caused this. */
+function clearNote(){
+  const g=$("#gen");
+  if(!g) return;
+  g.textContent="";
+  if(g.classList) g.classList.remove("busy");
+}
 let usedHint=false, usedUndo=false;      // per-run, for the unaided objective
 let shareText="";       // composed at win time, copied on demand
 let pileEls=[], vehEls=[], cellEls=[], dozerEl=null, rotEl=null, hintEl=null, lastVeh=[];
@@ -1850,9 +1889,16 @@ function buildBoard(){
  * off the left edge, where `overflow-x:hidden` clipped them for good.
  */
 function fitCell(){
-  const gap=2;
   const px=(el,...p)=>{ const cs=getComputedStyle(el);
     return p.reduce((n,k)=>n+parseFloat(cs[k]||0),0); };
+  /* Read the spacing rather than restating it. Both of these used to be
+     literals here — 2 for the cell gap and 14 for the body's flex gap, below
+     — which silently made this function wrong the moment a media query wanted
+     different spacing on a small screen. It would not throw or look broken;
+     the board would just be sized against a page that no longer exists. */
+  const bodyCS=getComputedStyle(document.body);
+  const bodyGap=parseFloat(bodyCS.rowGap)||0;
+  const gap=parseFloat(getComputedStyle(boardEl).rowGap)||2;
   const chrome=px(document.body,"paddingLeft","paddingRight")
               +px(stageEl,"paddingLeft","paddingRight",
                           "borderLeftWidth","borderRightWidth");
@@ -1867,7 +1913,7 @@ function fitCell(){
     // the rect as well would reserve a 50px banner twice over
     if(getComputedStyle(el).position==="fixed") continue;
     const h=el.getBoundingClientRect().height;
-    if(h) used+=h+14;                       // + the body's flex gap
+    if(h) used+=h+bodyGap;
   }
   const availH=Math.max(160, window.innerHeight-used-8);
   const byW=(availW-(lv.w-1)*gap)/lv.w;
@@ -2034,7 +2080,7 @@ function startLevel(def,label){
   pausedMs=0; hiddenAt=null;   // a new run inherits nothing from the last one
   lv=parse(def,diff);
   st=freshState();
-  past=[]; won=false; failed=null; hint=null;
+  past=[]; won=false; failed=null; hint=null; clearNote();
   usedHint=false; usedUndo=false; shareText="";
   $("#win").classList.remove("on");
   $("#lose").classList.remove("on");
@@ -2081,7 +2127,7 @@ function doMove(dir){
   boardEl.style.setProperty("--move-ms",
     Math.round(Math.max(40,Math.min(110,gap*0.8)))+"ms");
   lastMoveAt=now;
-  hint=null;
+  hint=null; clearNote();
   const snap=clone(st);
   const res=step(st,dir);
   if(!res.ok){
@@ -3044,6 +3090,17 @@ async function selfTest(){
   ok("banked and open interruptions both come off",
      playedMs(9000,1000,2000,7000)===4000);
   ok("the clock can never run backwards", playedMs(1000,1000,5000,null)===0);
+
+  /* 6l. the note is a caption for a moment, not a fixture. Nothing cleared it
+     before, so a hint for one position stayed on screen through the rest of
+     the session — measured twelve levels past the board it described. */
+  loadLevel(0);
+  $("#gen").textContent="Hint: go right — 5 moves left from here.";
+  doMove(1);
+  ok("a move clears the note it just invalidated", $("#gen").textContent==="");
+  $("#gen").textContent="Surveying a new site…";
+  loadLevel(3);
+  ok("loading a level clears the note", $("#gen").textContent==="");
 
   // 6f. an open panel must be detected, or keystrokes reach the board behind it
   closeAllOverlays();
