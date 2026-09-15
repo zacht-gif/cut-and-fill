@@ -26,6 +26,9 @@ outcomes, undo, star thresholds, picker reuse and the site generator.
 
 Both halves read the SOLUTIONS array out of index.html, so there is a single
 source of truth. If the engines ever drift apart, one of the two fails.
+
+It also checks that CODE-MAP.md still matches index.html, because the map is
+only useful while its line numbers are true.
 """
 
 import argparse
@@ -37,6 +40,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import codemap as CM                                   # noqa: E402
 import validate as V                                   # noqa: E402
 
 LETTER_TO_MOVE = {"U": 0, "R": 1, "D": 2, "L": 3, ".": V.WAIT}
@@ -125,6 +129,23 @@ def main():
     ap.add_argument("--py-only", action="store_true",
                     help="skip the JavaScript half even if node is present")
     args = ap.parse_args()
+
+    # ---- the code map, before anything slow -----------------------------
+    # Every line number in CODE-MAP.md moves when anything above it does, and
+    # a map that points somewhere plausible is worse than no map at all —
+    # plausible is what gets believed. This is a one-second check with a
+    # one-command fix while the solve below takes minutes, so a stale map
+    # stops here rather than being reported after you have paid for the solve.
+    fresh = CM.build().splitlines()
+    have = (CM.OUT.read_text(encoding="utf-8").splitlines()
+            if CM.OUT.exists() else None)
+    if have != fresh:
+        print("FAIL — CODE-MAP.md is stale; index.html or tools/ moved under it.")
+        print("       Regenerate it, then run this again:")
+        print()
+        print("           py -3 tools/codemap.py")
+        print()
+        return 1
 
     s = Suite()
     levels = V.read_levels()

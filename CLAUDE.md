@@ -12,12 +12,38 @@ machines, git identity and syncing; this file is only about the game.
 | `tools/test.mjs` | the JS half — boots the page against a stub DOM, runs `selfTest()` |
 | `tools/analyze.py` | measures trap density and lethality. This is what orders the campaign |
 | `tools/shots.mjs` | renders the store imagery out of the real game over CDP |
+| `tools/codemap.py` | regenerates `CODE-MAP.md`, the line index of `index.html` |
+| `CODE-MAP.md` | generated. Where everything in `index.html` lives, by line |
 
 The one command before a commit:
 
 ```bash
 py -3 tools/test.py
 ```
+
+## Finding your way around `index.html`
+
+3,472 lines in one file is fine to ship and slow to navigate, and the slowness
+lands on whoever is editing it. `CODE-MAP.md` is the index: every CSS rule,
+every markup id, every declaration with its line range, and the wiring that
+binds a control to its handler. Look there before reaching for grep.
+
+```bash
+grep -n fitCell CODE-MAP.md      # -> 2135-2185
+sed -n '2135,2185p' index.html   # read those 51 lines, not 3,472
+```
+
+Regenerate after any edit to `index.html` or `tools/`:
+
+```bash
+py -3 tools/codemap.py
+```
+
+`tools/test.py` fails while the map is stale, deliberately. A line number that
+is merely *close* is worse than none — it looks right, so it gets believed,
+and the next edit lands somewhere plausible instead of somewhere correct. Use
+the ranges to decide what to read; make the change by anchored replacement,
+never by line number.
 
 **It is not open source.** The repo is public; the licence is proprietary, all
 rights reserved, and that explicitly covers the level designs. Public repo,
