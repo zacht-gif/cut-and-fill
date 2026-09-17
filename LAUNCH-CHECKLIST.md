@@ -256,8 +256,24 @@ If critical bug found:
 Common requests to consider:
 - **Leaderboards** (local export or cloud)
 - **More levels** (additional campaign chapters)
-- **Cosmetics** (dozer skins, themes)
-- **Mobile app** (PWA wrapper)
+- **Cosmetics** (themes and dozer liveries) — wanted, deferred 2026-09-16.
+  The whole look is 21 custom properties on `:root`, so a theme is a handful
+  of variable swaps: no assets, no new files, all four properties intact.
+  Sketched: Blueprint (light, cyan on paper), High-vis (safety orange and
+  yellow), Mono (single hue, for colour-vision differences and e-ink). A
+  livery is just `--dozer`. **The cost is not picking colours** — getting the
+  current palette from 10 WCAG failures down to 1 took a full commit of
+  measured work, and every new theme reopens that audit. Budget a contrast
+  pass per theme, measured off the rendered page rather than read out of the
+  CSS. Sprite skins are ruled out: they need asset files.
+- **Mobile app** — a PWA is the wrong tool on itch (a service worker must be
+  a separate same-origin file, which ends the single-file property, and you
+  cannot install a PWA from inside itch's third-party iframe). It only
+  becomes relevant for **Google Play**, which accepts a PWA wrapped as a
+  Trusted Web Activity. **Apple does not take PWAs at all** — iOS needs a
+  native wrapper, and guideline 4.2 routinely rejects a webview around a
+  website unless it adds native value. Bundling `index.html` as a local asset
+  does keep the offline/no-network property in either wrapper.
 - **Replay sharing** (GIF/video export)
 - **Sound pack** (sampled audio option)
 
