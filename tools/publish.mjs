@@ -166,9 +166,24 @@ function main() {
     rmSync(stage, { recursive: true, force: true });
   }
 
-  console.log("\nPushed. If this was the FIRST push, the build is a download until you");
-  console.log("tick \"This file will be played in the browser\" on the itch Edit game page.");
-  console.log("Confirm https://thornsrl.itch.io/cut-fill still plays before removing the old upload.");
+  // Half a deploy. itch holds the new build until Zach goes on itch and
+  // checks the game page; until then players still get the previous build.
+  // Printing just 'Pushed' here reported success at a moment it was false,
+  // and one build sat overnight because nobody knew this step existed.
+  console.log("");
+  console.log("Pushed - but NOT live yet.");
+  console.log("");
+  console.log("  Go on itch and check the game page. Until you do, players keep");
+  console.log("  getting the previous build, and nothing here can finish it for you.");
+  console.log("");
+  console.log("      https://thornsrl.itch.io/cut-fill");
+  console.log("");
+  console.log("Then confirm the upload actually swapped:");
+  console.log("");
+  console.log("  curl -s https://itch.io/embed-upload/19217413 | grep -o 'html/19217413-[0-9]*'");
+  console.log("");
+  console.log("If this was the FIRST push, the build is a download until you tick");
+  console.log("'This file will be played in the browser' on the itch Edit game page.");
 }
 
 main();

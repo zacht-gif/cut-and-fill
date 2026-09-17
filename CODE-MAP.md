@@ -675,7 +675,7 @@ this, what ran?" without reading the whole script.
 **`tools/lib/png.mjs`** - 92 lines  
   `CHANNELS:15`, `decodePNG:17`
 
-**`tools/publish.mjs`** - 174 lines  
+**`tools/publish.mjs`** - 189 lines  
   `ROOT:34`, `TARGET:35`, `KNOWN:41`, `ARGS:42`, `unknown:43`, `QUICK:52`, `DRY:53`, `ZIP:54`, `BUTLER:59`, `fail:66`, `run:71`, `checkSelfContained:85`, `main:102`
 
 **`tools/shots.mjs`** - 341 lines  
