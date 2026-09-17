@@ -6,9 +6,16 @@ a Markdown one. Same trap as assets/itch-description.txt and devlog 1: pasting
 below has none in it. Paste it, then use the editor's own toolbar for the title
 and any bold runs.
 
-Optional image: the 360x553 screenshot showing the full d-pad is the clearest
-thing to include, placed at the line marked [SHOT]. Delete that marker line if
-you post without it.
+Images, in assets/screenshots/ (regenerate with the devlog2 shots if needed):
+
+  devlog2-levels-before.png / -after.png   375x812, drawer open. The pair that
+    carries the post: before is a screen with no level tiles on it at all,
+    after is all 25 plus a pinned way out. Place at [SHOT 1].
+  devlog2-dpad-before.png / -after.png     360x553, level 25. Before has the
+    down arrow clipped by the screen edge, DIRT LEFT wrapped to two lines and
+    HINT pushed onto a second row. Place at [SHOT 2].
+
+Delete any marker line you post without.
 
 Suggested devlog title:  There was never a scrollbar
 
@@ -28,16 +35,20 @@ past the bottom of the frame is not hard to reach, it is gone.
 
 That turns "overflows by 80 pixels" from a blemish into missing controls.
 
-In portrait, opening the levels drawer added about 600 pixels of level picker
-underneath the game. At every phone height, tall ones included, the whole
-campaign list was unreachable. You could press the button and nothing you
-could see would change.
+In portrait, opening the levels drawer put the level picker underneath the
+game, 528 pixels of it below the fold on a 375 by 812 iPhone. Counting the
+tiles you could actually reach, on that phone and on a 360 by 800 Android:
+zero of twenty-five. Not awkward to reach. None of them. You pressed the
+button and nothing you could see changed. On a taller 390 by 844 frame you
+got the first twelve and nothing past level 12.
 
-[SHOT]
+[SHOT 1]
 
 Worse: on a 360 pixel wide phone, 43 pixels of the d-pad sat below the bottom
 of the screen. The down button was not there. On a 344 pixel frame it was 96
 pixels, most of the bottom row.
+
+[SHOT 2]
 
 Landscape was fine, and the reason why turned out to be the fix. Held
 sideways, the drawer is already its own scrolling panel pinned over the
