@@ -120,10 +120,15 @@ visit.
   status` describes the *channel*; the game page embeds the *upload*, and the
   two agree only once itch has swapped. On 2026-09-14 butler reported build
   #1980281 complete while the page still served #1973885 — the build from the
-  previous month, with none of the new work in it. The swap took about 40
-  seconds. Checking once, straight after the push, reports success at exactly
-  the moment it is false. Resolve what is really being served, and poll until
-  the build id moves:
+  previous month, with none of the new work in it. Checking once, straight
+  after the push, reports success at exactly the moment it is false.
+
+  **Budget an unpredictable wait, and do not read a slow one as a failure.**
+  Two deploys down the same path, within 4 KB of each other in size: the first
+  swapped in about 40 seconds, the second took about 41 minutes with `butler
+  status` reporting the build complete the entire time. Re-pushing during the
+  slow one would have produced a redundant build and muddied the picture.
+  Resolve what is really being served, and poll until the build id moves:
 
   ```bash
   curl -s https://itch.io/embed-upload/19217413 | grep -o 'html/19217413-[0-9]*'
@@ -181,16 +186,28 @@ unticked boxes are historical.
 
 ## Where things stand
 
-Released August 2026 and stable. As of 2026-09-12: 56/56 JS checks pass, all 25
-levels proved solvable on all three shifts with every par optimal, the build
-deployed on itch is byte-identical to `index.html`, and there are no open
-issues.
+Released August 2026 and stable. As of 2026-09-16: 71 JS checks and 6 Python
+checks pass, all 25 levels proved solvable on all three shifts with every par
+optimal, and what itch serves is byte-identical to `index.html` apart from
+itch's injected `htmlgame.js`. No open issues.
 
-The real gap is reach, not code. 0 stars, 0 forks, no itch comments, and the
-"Day 2-3 social push" in `LAUNCH-CHECKLIST.md` never happened — which is the
-only thing standing between the game and its own success metric of 100+ plays
-in month one.
+Read those counts off a run rather than from here — this line claimed 56/56 for
+days after the suite had grown to 71.
 
-Phase 2 ideas, none started, are listed at the end of `LAUNCH-CHECKLIST.md`.
+The real gap is still reach, not code: 0 stars, 0 forks, no itch comments. The
+"Day 2-3 social push" was not entirely skipped, though — devlog 1, "Par is not
+difficulty", went up on 2026-09-13, and devlog 2 is drafted and paste-ready at
+`assets/devlog-02-there-was-never-a-scrollbar.txt`. Nothing has gone out
+off-platform yet. Posting is a dashboard job either way: butler pushes builds
+and nothing else, and itch has no API for devlogs.
+
+The last code work was the portrait layout, on 2026-09-16, and why it survived
+a month is the part worth keeping. The layout trusted page scroll to catch
+whatever did not fit, and inside itch's iframe there is no page scroll at all.
+So the overflow was never untidiness — it was a level picker nobody could
+reach, and on a 360px phone a d-pad missing its bottom row.
+
+Phase 2 ideas are at the end of `LAUNCH-CHECKLIST.md`; themes and dozer
+liveries are the ones Zach has said he wants, deferred rather than declined.
 Anything added there has to keep the four properties above: one file, no
 dependencies, no network, no build step.
