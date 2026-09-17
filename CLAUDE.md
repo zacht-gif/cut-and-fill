@@ -113,30 +113,25 @@ visit.
 - **A rebuild is not a deploy, and neither is a push.** itch serves whatever
   the *upload* points at; nothing about committing, pushing to git, or even
   pushing to the channel with butler changes that by itself.
-- **The deploy has two halves, and the second one is yours.**
+- **The deploy has two halves, and the second one is Zach's.**
   `node tools/publish.mjs` is the first: it proves the game works, then sends
-  `index.html` to `thornsrl/cut-fill:html5`. Then itch waits for Zach to open
-  itch.io and click the notification in the banner by their profile. Until that
-  click, players keep getting the previous build, and there is nothing a
-  script can do about it. `publish.mjs` says so on the way out.
+  `index.html` to `thornsrl/cut-fill:html5`. The second is Zach going on itch
+  and checking the game page. Until he does, players keep getting the previous
+  build, and no script can finish it for him.
 
-  This was mistaken for slow processing for weeks, and the note here recorded
-  the mistake twice — first as "about 40 seconds", then as an unpredictable
-  range. Four deploys: about 40 seconds, about 5 minutes, about 41 minutes,
-  and one that sat over five hours and swapped 3 minutes after Zach clicked.
-  A queue with variance does not look like that; a queue with a human in it
-  does, and the apparent "wait" tracks how soon he next opened itch.
+  This was mistaken for slow processing, and the note here recorded the
+  mistake twice — first as "about 40 seconds", then as an unpredictable range.
+  Four deploys read as about 40 seconds, about 5 minutes, about 41 minutes,
+  and one that sat over five hours overnight and went live within minutes of
+  Zach going on itch the next morning. That is not a queue with variance. The
+  apparent wait was how soon he next opened the page.
 
-  **Confirmed once, and the exact control is not pinned down.** Zach named the
-  banner notification as what he clicks; the swap followed within 3 minutes
-  after 5 hours of nothing. That is one trial, and he was not certain the
-  banner is the operative control rather than something else on the page he
-  touched at the same time. Enough to act on — do not wait on a build and
-  call it processing — but if a future deploy swaps with nobody clicking
-  anything, this paragraph is what was wrong, not the observation.
+  Which action on itch does it is not known — several were tried inside the
+  same few minutes, so the test could not separate them. It does not matter
+  much: go on itch, check the game page, and it goes live.
 
   `butler status` reporting `√` means the build exists, not that anyone has
-  it. Both are true at once for as long as the click is outstanding:
+  it. Both are true at once until Zach has been on the page:
 
   ```bash
   butler status thornsrl/cut-fill:html5     # the channel
