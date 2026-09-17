@@ -1,0 +1,76 @@
+Cut & Fill — devlog 2 (paste-ready, no Markdown syntax)
+
+itch's devlog editor is the same rich-text editor as the description field, not
+a Markdown one. Same trap as assets/itch-description.txt and devlog 1: pasting
+"## Heading" or "**bold**" puts those characters on the page literally. The text
+below has none in it. Paste it, then use the editor's own toolbar for the title
+and any bold runs.
+
+Optional image: the 360x553 screenshot showing the full d-pad is the clearest
+thing to include, placed at the line marked [SHOT]. Delete that marker line if
+you post without it.
+
+Suggested devlog title:  There was never a scrollbar
+
+========================================================================
+
+
+Cut & Fill is one HTML file with no build step, so the layout has to fit
+whatever screen it lands on. I had a rule in mind for when it could not: if
+something overflows, the page scrolls, and scrolling is ugly but honest. There
+is a comment in the stylesheet saying exactly that.
+
+The rule was wrong, and it had been wrong since launch.
+
+itch serves a browser game inside an iframe, and that iframe carries
+scrolling="no". There is no page scroll. Not an awkward one, none. Anything
+past the bottom of the frame is not hard to reach, it is gone.
+
+That turns "overflows by 80 pixels" from a blemish into missing controls.
+
+In portrait, opening the levels drawer added about 600 pixels of level picker
+underneath the game. At every phone height, tall ones included, the whole
+campaign list was unreachable. You could press the button and nothing you
+could see would change.
+
+[SHOT]
+
+Worse: on a 360 pixel wide phone, 43 pixels of the d-pad sat below the bottom
+of the screen. The down button was not there. On a 344 pixel frame it was 96
+pixels, most of the bottom row.
+
+Landscape was fine, and the reason why turned out to be the fix. Held
+sideways, the drawer is already its own scrolling panel pinned over the
+screen, so it never relied on the page scrolling at all. Portrait does the
+same thing now, with the close button pinned on top of it so there is always a
+way back out.
+
+Then the board still had to fit, and three things were eating the column. Two
+of them are a little embarrassing.
+
+One stat caption is two words. Below 390 pixels wide it wrapped to a second
+line, and because the six stat chips are flex siblings that stretch to match
+the tallest one, that single label made all six of them 64 pixels tall instead
+of 44. Twenty pixels off every phone screen, because one word wrapped.
+
+The four action buttons wrapped onto a second row below 390 pixels. Another 38
+pixels.
+
+The levels button had a full-width row of its own, 30 more, on the screens
+with none to spare. On a short screen it is a pill in the corner now.
+
+Measured on the worst level in the campaign, before and after:
+
+390 x 556 - overflowed by 25 pixels. Now fits.
+360 x 553 - overflowed by 80, with 43 of the d-pad gone. Now fits.
+344 x 500 - overflowed by 133, with 96 of the d-pad gone. Now fits.
+
+No rules changed. The levels are the same levels, every par is still the one
+the solver proved, and your saves are untouched. The game just fits on a phone
+now, and you can actually reach the levels.
+
+The part worth keeping is that the bug was not in the layout. It was in an
+assumption about the environment that I never checked, and was confident
+enough about to write into a comment explaining my reasoning.
+
+Play it in your browser, free: https://thornsrl.itch.io/cut-fill
