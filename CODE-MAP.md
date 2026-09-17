@@ -9,7 +9,7 @@
 
 # Code map - `index.html`
 
-3,544 lines, 148,727 bytes. One file: stylesheet, markup, rules, solver,
+3,544 lines, 148,736 bytes. One file: stylesheet, markup, rules, solver,
 editor and self test. There is no build step, so this *is* the source.
 
 **Use it like this** - find the thing, then read only its slice:

@@ -105,6 +105,8 @@ Built as a single self-contained HTML file. No build step, no dependencies, no e
 
 **License:** Proprietary. All rights reserved. Not licensed for copying, modification, or redistribution. See LICENSE file.
 
+**Streaming:** Permitted, including monetised video, without asking. This is the one licence clause worth stating on the page rather than leaving in the repo - it is what a streamer checks before covering a game.
+
 ---
 
 ## Short Description (tagline, ~50 chars)
