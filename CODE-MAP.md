@@ -9,7 +9,7 @@
 
 # Code map - `index.html`
 
-3,472 lines, 144,511 bytes. One file: stylesheet, markup, rules, solver,
+3,536 lines, 148,181 bytes. One file: stylesheet, markup, rules, solver,
 editor and self test. There is no build step, so this *is* the source.
 
 **Use it like this** - find the thing, then read only its slice:
@@ -28,10 +28,10 @@ overwrite. Edit by anchored replacement, not by line number.
 | lines | what |
 |---|---|
 | 1-19 | `<head>`: meta, title, inline favicon |
-| 20-670 | `<style>` - 229 rules |
-| 672-874 | `<body>` markup - 86 ids |
-| 875-3470 | `<script>` - 172 declarations |
-| 3471-3472 | close |
+| 20-730 | `<style>` - 240 rules |
+| 732-934 | `<body>` markup - 86 ids |
+| 935-3534 | `<script>` - 172 declarations |
+| 3535-3536 | close |
 
 ## Chapters
 
@@ -40,26 +40,26 @@ everything under them is listed in full further down.
 
 | lines | chapter |
 |---|---|
-| 876-1263 | Cut & Fill |
-| 1002 | &nbsp;&nbsp;&nbsp;&nbsp;chapter two: soft ground and live traffic &nbsp;_(inside `LEVELS`)_ |
-| 1063 | &nbsp;&nbsp;&nbsp;&nbsp;chapter three: gated roads and a clock that speeds up &nbsp;_(inside `LEVELS`)_ |
-| 1264-1382 | Sound |
-| 1383-1522 | level parsing |
-| 1523-1641 | rules |
-| 1642-1741 | Solver |
-| 1742-1845 | Random sites |
-| 1846-1910 | Level editor and sharing |
-| 1911-1994 | the player's own library, kept beside their save |
-| 1995-2062 | the editing surface |
-| 2063-2336 | rendering |
-| 2337-2499 | game flow |
-| 2500-2566 | hint |
-| 2567-2570 | input |
-| 2571-2599 | held-key movement |
-| 2600-2714 | panels are driveable from the keyboard, same keys as the game |
-| 2715-2981 | editor wiring |
-| 2982-3078 | title screen |
-| 3079-3469 | Self test |
+| 936-1323 | Cut & Fill |
+| 1062 | &nbsp;&nbsp;&nbsp;&nbsp;chapter two: soft ground and live traffic &nbsp;_(inside `LEVELS`)_ |
+| 1123 | &nbsp;&nbsp;&nbsp;&nbsp;chapter three: gated roads and a clock that speeds up &nbsp;_(inside `LEVELS`)_ |
+| 1324-1442 | Sound |
+| 1443-1582 | level parsing |
+| 1583-1701 | rules |
+| 1702-1801 | Solver |
+| 1802-1905 | Random sites |
+| 1906-1970 | Level editor and sharing |
+| 1971-2054 | the player's own library, kept beside their save |
+| 2055-2122 | the editing surface |
+| 2123-2396 | rendering |
+| 2397-2559 | game flow |
+| 2560-2626 | hint |
+| 2627-2630 | input |
+| 2631-2659 | held-key movement |
+| 2660-2774 | panels are driveable from the keyboard, same keys as the game |
+| 2775-3041 | editor wiring |
+| 3042-3142 | title screen |
+| 3143-3533 | Self test |
 
 ## Stylesheet
 
@@ -211,387 +211,398 @@ above it and applies only under that query.
 | 359 | &nbsp;&nbsp;&nbsp;&nbsp;`h1` |
 | 360 | &nbsp;&nbsp;&nbsp;&nbsp;`.row` |
 | 361 | &nbsp;&nbsp;&nbsp;&nbsp;`button` |
-| 366 | `#objectives` |
-| 368 | `.ob` |
-| 369 | `.ob i` |
-| 372 | `.ob.done` |
-| 373 | `.ob.done i` |
-| 374 | `.ob.done i::before` |
-| 375 | `.ob.lost` |
-| 376 | `.ob.lost i` |
-| 377 | `.ob.lost i::before` |
-| 378 | `.earned` |
-| 379 | `.lv .clean` |
-| 401 | `#gen` |
-| 407 | `#gen:empty` |
-| 408 | `#gen.busy` |
-| 409 | `.hintmark` |
-| 412 | `.hintmark.on` |
-| 413 | `.c.hint` |
-| 415 | `.banner` |
-| 418 | `.banner.on` |
-| 420 | `.overlay` |
-| 422 | `.overlay.on` |
-| 424 | `.overlay button:focus` |
-| 426 | `.overlay button.primary:focus` |
-| 427 | `.overlay .pick:focus` |
-| 428 | `.card` |
-| 431 | `@keyframes pop` |
-| 432 | `.card h2` |
-| 434 | `.card.bad h2` |
-| 435 | `.card p` |
-| 436 | `.card p b` |
-| 437 | `#wStars` |
-| 438 | `#wStars b.on` |
-| 440 | `.togo` |
-| 443 | `#edCard` |
-| 444 | `.edtools,.edsize` |
-| 446 | `.edtools button,.edsize button` |
-| 447 | `.edtools button.on` |
-| 448 | `#edGrid` |
-| 451 | `#edGrid .c` |
-| 452 | `#edGrid .c.edge` |
-| 453 | `#edName,#impText,#edCodeText` |
-| 456 | `#edName:focus,#impText:focus` |
-| 457 | `#edStatus,#impStatus` |
-| 459 | `#edStatus.bad,#impStatus.bad` |
-| 460 | `#edStatus.good,#impStatus.good` |
-| 461 | `#edCodeText` |
-| 462 | `#community` |
-| 463 | `.cm` |
-| 465 | `.cm b` |
-| 467 | `.cm small` |
-| 468 | `.cm button` |
-| 471 | `.titlecard` |
-| 474 | `.tlogo` |
-| 476 | `.tlogo span` |
-| 477 | `.tline` |
-| 478 | `.tfoot` |
-| 483 | `#titleStrip` |
-| 487 | `#diffCard` |
-| 488 | `#diffCard h2` |
-| 489 | `#diffCard>p` |
-| 490 | `.pick` |
-| 492 | `.pick b` |
-| 494 | `.pick span` |
-| 495 | `.pick.on` |
-| 496 | `.pick.on b` |
-| 498 | `.hint` |
-| 499 | `kbd` |
-| 501 | `.legend` |
-| 503 | `.legend span` |
-| 504 | `.sw` |
-| 505 | `.sw.h` |
-| 506 | `.sw.m` |
-| 507 | `.sw.d` |
-| 508 | `.sw.v` |
-| 509 | `.sw.g` |
-| 523 | `@media (max-height:700px)` |
-| 524 | &nbsp;&nbsp;&nbsp;&nbsp;`body` |
-| 525 | &nbsp;&nbsp;&nbsp;&nbsp;`header` |
-| 526 | &nbsp;&nbsp;&nbsp;&nbsp;`h1` |
-| 528 | &nbsp;&nbsp;&nbsp;&nbsp;`.sub` |
-| 529 | &nbsp;&nbsp;&nbsp;&nbsp;`#objectives` |
-| 530 | &nbsp;&nbsp;&nbsp;&nbsp;`.stats` |
-| 531 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat` |
-| 532 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat b` |
-| 533 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat i` |
-| 534 | &nbsp;&nbsp;&nbsp;&nbsp;`.row` |
-| 535 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawerToggle` |
-| 552 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad` |
-| 553 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad button` |
-| 577 | `@media (orientation:landscape) and (max-height:520px)` |
-| 578 | &nbsp;&nbsp;&nbsp;&nbsp;`body` |
-| 583 | &nbsp;&nbsp;&nbsp;&nbsp;`#hud,#play` |
-| 590 | &nbsp;&nbsp;&nbsp;&nbsp;`#hud` |
-| 593 | &nbsp;&nbsp;&nbsp;&nbsp;`header` |
-| 594 | &nbsp;&nbsp;&nbsp;&nbsp;`h1` |
-| 595 | &nbsp;&nbsp;&nbsp;&nbsp;`.sub` |
-| 597 | &nbsp;&nbsp;&nbsp;&nbsp;`.stats` |
-| 599 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat` |
-| 600 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat b` |
-| 601 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat i` |
-| 603 | &nbsp;&nbsp;&nbsp;&nbsp;`#objectives` |
-| 608 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions` |
-| 609 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions button` |
-| 612 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad` |
-| 614 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad button` |
-| 624 | &nbsp;&nbsp;&nbsp;&nbsp;`#gen` |
-| 632 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawerToggle` |
-| 639 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawer:not(.closed)` |
-| 660 | `@keyframes refuse` |
-| 661 | `@media (prefers-reduced-motion: reduce)` |
-| 662 | &nbsp;&nbsp;&nbsp;&nbsp;`.c.marsh::after, .c.danger .mk, .c.hole.filled, .card,.titlecard,#wStars b.on` |
-| 667 | &nbsp;&nbsp;&nbsp;&nbsp;`.ent,.dozer .rot,.veh,.veh .rot,.pile.gone` |
-| 668 | &nbsp;&nbsp;&nbsp;&nbsp;`#board.shake` |
+| 370 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat i` |
+| 375 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions` |
+| 376 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions button` |
+| 391 | `@media (orientation:portrait) and (max-width:900px)` |
+| 392 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawer:not(.closed)` |
+| 397 | &nbsp;&nbsp;&nbsp;&nbsp;`body.drawer #drawerToggle` |
+| 401 | `#objectives` |
+| 403 | `.ob` |
+| 404 | `.ob i` |
+| 407 | `.ob.done` |
+| 408 | `.ob.done i` |
+| 409 | `.ob.done i::before` |
+| 410 | `.ob.lost` |
+| 411 | `.ob.lost i` |
+| 412 | `.ob.lost i::before` |
+| 413 | `.earned` |
+| 414 | `.lv .clean` |
+| 436 | `#gen` |
+| 442 | `#gen:empty` |
+| 443 | `#gen.busy` |
+| 444 | `.hintmark` |
+| 447 | `.hintmark.on` |
+| 448 | `.c.hint` |
+| 450 | `.banner` |
+| 453 | `.banner.on` |
+| 455 | `.overlay` |
+| 457 | `.overlay.on` |
+| 459 | `.overlay button:focus` |
+| 461 | `.overlay button.primary:focus` |
+| 462 | `.overlay .pick:focus` |
+| 463 | `.card` |
+| 466 | `@keyframes pop` |
+| 467 | `.card h2` |
+| 469 | `.card.bad h2` |
+| 470 | `.card p` |
+| 471 | `.card p b` |
+| 472 | `#wStars` |
+| 473 | `#wStars b.on` |
+| 475 | `.togo` |
+| 478 | `#edCard` |
+| 479 | `.edtools,.edsize` |
+| 481 | `.edtools button,.edsize button` |
+| 482 | `.edtools button.on` |
+| 483 | `#edGrid` |
+| 486 | `#edGrid .c` |
+| 487 | `#edGrid .c.edge` |
+| 488 | `#edName,#impText,#edCodeText` |
+| 491 | `#edName:focus,#impText:focus` |
+| 492 | `#edStatus,#impStatus` |
+| 494 | `#edStatus.bad,#impStatus.bad` |
+| 495 | `#edStatus.good,#impStatus.good` |
+| 496 | `#edCodeText` |
+| 497 | `#community` |
+| 498 | `.cm` |
+| 500 | `.cm b` |
+| 502 | `.cm small` |
+| 503 | `.cm button` |
+| 506 | `.titlecard` |
+| 509 | `.tlogo` |
+| 511 | `.tlogo span` |
+| 512 | `.tline` |
+| 513 | `.tfoot` |
+| 518 | `#titleStrip` |
+| 522 | `#diffCard` |
+| 523 | `#diffCard h2` |
+| 524 | `#diffCard>p` |
+| 525 | `.pick` |
+| 527 | `.pick b` |
+| 529 | `.pick span` |
+| 530 | `.pick.on` |
+| 531 | `.pick.on b` |
+| 533 | `.hint` |
+| 534 | `kbd` |
+| 536 | `.legend` |
+| 538 | `.legend span` |
+| 539 | `.sw` |
+| 540 | `.sw.h` |
+| 541 | `.sw.m` |
+| 542 | `.sw.d` |
+| 543 | `.sw.v` |
+| 544 | `.sw.g` |
+| 558 | `@media (max-height:700px)` |
+| 559 | &nbsp;&nbsp;&nbsp;&nbsp;`body` |
+| 560 | &nbsp;&nbsp;&nbsp;&nbsp;`header` |
+| 561 | &nbsp;&nbsp;&nbsp;&nbsp;`h1` |
+| 563 | &nbsp;&nbsp;&nbsp;&nbsp;`.sub` |
+| 564 | &nbsp;&nbsp;&nbsp;&nbsp;`#objectives` |
+| 565 | &nbsp;&nbsp;&nbsp;&nbsp;`.stats` |
+| 566 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat` |
+| 567 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat b` |
+| 568 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat i` |
+| 569 | &nbsp;&nbsp;&nbsp;&nbsp;`.row` |
+| 570 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawerToggle` |
+| 587 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad` |
+| 588 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad button` |
+| 599 | `@media (max-height:600px) and (orientation:portrait)` |
+| 600 | &nbsp;&nbsp;&nbsp;&nbsp;`body` |
+| 601 | &nbsp;&nbsp;&nbsp;&nbsp;`#objectives` |
+| 602 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad` |
+| 608 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawerToggle` |
+| 637 | `@media (orientation:landscape) and (max-height:520px)` |
+| 638 | &nbsp;&nbsp;&nbsp;&nbsp;`body` |
+| 643 | &nbsp;&nbsp;&nbsp;&nbsp;`#hud,#play` |
+| 650 | &nbsp;&nbsp;&nbsp;&nbsp;`#hud` |
+| 653 | &nbsp;&nbsp;&nbsp;&nbsp;`header` |
+| 654 | &nbsp;&nbsp;&nbsp;&nbsp;`h1` |
+| 655 | &nbsp;&nbsp;&nbsp;&nbsp;`.sub` |
+| 657 | &nbsp;&nbsp;&nbsp;&nbsp;`.stats` |
+| 659 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat` |
+| 660 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat b` |
+| 661 | &nbsp;&nbsp;&nbsp;&nbsp;`.stat i` |
+| 663 | &nbsp;&nbsp;&nbsp;&nbsp;`#objectives` |
+| 668 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions` |
+| 669 | &nbsp;&nbsp;&nbsp;&nbsp;`#actions button` |
+| 672 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad` |
+| 674 | &nbsp;&nbsp;&nbsp;&nbsp;`#pad button` |
+| 684 | &nbsp;&nbsp;&nbsp;&nbsp;`#gen` |
+| 692 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawerToggle` |
+| 699 | &nbsp;&nbsp;&nbsp;&nbsp;`#drawer:not(.closed)` |
+| 720 | `@keyframes refuse` |
+| 721 | `@media (prefers-reduced-motion: reduce)` |
+| 722 | &nbsp;&nbsp;&nbsp;&nbsp;`.c.marsh::after, .c.danger .mk, .c.hole.filled, .card,.titlecard,#wStars b.on` |
+| 727 | &nbsp;&nbsp;&nbsp;&nbsp;`.ent,.dozer .rot,.veh,.veh .rot,.pile.gone` |
+| 728 | &nbsp;&nbsp;&nbsp;&nbsp;`#board.shake` |
 
 ## Markup ids
 
 | line | element |
 |---|---|
-| 674 | `#title` &nbsp;`<div>` |
-| 676 | `#titleStrip` &nbsp;`<div>` |
-| 679 | `#tStart` &nbsp;`<button>` |
-| 683 | `#adTop` &nbsp;`<div>` |
-| 691 | `#hud` &nbsp;`<div>` |
-| 697 | `#gearTag` &nbsp;`<button>` |
-| 699 | `#levelName` &nbsp;`<span>` |
-| 700 | `#sStars` &nbsp;`<span>` |
-| 701 | `#shiftNow` &nbsp;`<span>` |
-| 706 | `#sMoves` &nbsp;`<b>` |
-| 707 | `#sPar` &nbsp;`<b>` |
-| 708 | `#sBest` &nbsp;`<b>` |
-| 709 | `#sHoles` &nbsp;`<b>` |
-| 710 | `#stDirt` &nbsp;`<div>` |
-| 710 | `#sDirt` &nbsp;`<b>` |
-| 711 | `#stTempo` &nbsp;`<div>` |
-| 711 | `#sTempo` &nbsp;`<b>` |
-| 712 | `#stTime` &nbsp;`<div>` |
-| 712 | `#sTime` &nbsp;`<b>` |
-| 715 | `#banner` &nbsp;`<div>` |
-| 717 | `#objectives` &nbsp;`<div>` |
-| 718 | `#ob0` &nbsp;`<span>` |
-| 719 | `#ob1` &nbsp;`<span>` |
-| 720 | `#ob2` &nbsp;`<span>` |
-| 724 | `#stage` &nbsp;`<div>` |
-| 724 | `#board` &nbsp;`<div>` |
-| 729 | `#play` &nbsp;`<div>` |
-| 730 | `#actions` &nbsp;`<div>` |
-| 731 | `#bWait` &nbsp;`<button>` |
-| 732 | `#bUndo` &nbsp;`<button>` |
-| 733 | `#bReset` &nbsp;`<button>` |
-| 734 | `#bHint` &nbsp;`<button>` |
-| 737 | `#pad` &nbsp;`<div>` |
-| 743 | `#drawerToggle` &nbsp;`<button>` |
-| 746 | `#gen` &nbsp;`<div>` |
-| 748 | `#drawer` &nbsp;`<div>` |
-| 750 | `#bPrev` &nbsp;`<button>` |
-| 751 | `#bNext` &nbsp;`<button>` |
-| 752 | `#bDaily` &nbsp;`<button>` |
-| 758 | `#levels` &nbsp;`<div>` |
-| 761 | `#bEdit` &nbsp;`<button>` |
-| 762 | `#bImport` &nbsp;`<button>` |
-| 764 | `#community` &nbsp;`<div>` |
-| 782 | `#adBottom` &nbsp;`<div>` |
-| 784 | `#win` &nbsp;`<div>` |
-| 785 | `#wTitle` &nbsp;`<h2>` |
-| 786 | `#wStars` &nbsp;`<div>` |
-| 787 | `#wBody` &nbsp;`<p>` |
-| 789 | `#wReplay` &nbsp;`<button>` |
-| 790 | `#wShare` &nbsp;`<button>` |
-| 791 | `#wNext` &nbsp;`<button>` |
-| 795 | `#lose` &nbsp;`<div>` |
-| 796 | `#lTitle` &nbsp;`<h2>` |
-| 797 | `#lBody` &nbsp;`<p>` |
-| 799 | `#lUndo` &nbsp;`<button>` |
-| 800 | `#lReset` &nbsp;`<button>` |
-| 804 | `#settings` &nbsp;`<div>` |
-| 806 | `#soundTag` &nbsp;`<button>` |
-| 807 | `#setHaptic` &nbsp;`<div>` |
-| 808 | `#hapticTag` &nbsp;`<button>` |
-| 809 | `#setTouch` &nbsp;`<div>` |
-| 810 | `#touchTag` &nbsp;`<button>` |
-| 811 | `#diffTag` &nbsp;`<button>` |
-| 812 | `#setTimeTrial` &nbsp;`<div>` |
-| 813 | `#timeTrialTag` &nbsp;`<button>` |
-| 818 | `#setReset` &nbsp;`<button>` |
-| 819 | `#setClose` &nbsp;`<button>` |
-| 823 | `#editor` &nbsp;`<div>` |
-| 823 | `#edCard` &nbsp;`<div>` |
-| 825 | `#edTools` &nbsp;`<div>` |
-| 833 | `#edGrid` &nbsp;`<div>` |
-| 839 | `#edName` &nbsp;`<input>` |
-| 840 | `#edStatus` &nbsp;`<div>` |
-| 841 | `#edCode` &nbsp;`<div>` |
-| 841 | `#edCodeText` &nbsp;`<textarea>` |
-| 843 | `#edVerify` &nbsp;`<button>` |
-| 844 | `#edPlay` &nbsp;`<button>` |
-| 845 | `#edCopy` &nbsp;`<button>` |
-| 846 | `#edClose` &nbsp;`<button>` |
-| 850 | `#importer` &nbsp;`<div>` |
-| 853 | `#impText` &nbsp;`<textarea>` |
-| 854 | `#impStatus` &nbsp;`<div>` |
-| 856 | `#impGo` &nbsp;`<button>` |
-| 857 | `#impClose` &nbsp;`<button>` |
-| 861 | `#diff` &nbsp;`<div>` |
-| 861 | `#diffCard` &nbsp;`<div>` |
+| 734 | `#title` &nbsp;`<div>` |
+| 736 | `#titleStrip` &nbsp;`<div>` |
+| 739 | `#tStart` &nbsp;`<button>` |
+| 743 | `#adTop` &nbsp;`<div>` |
+| 751 | `#hud` &nbsp;`<div>` |
+| 757 | `#gearTag` &nbsp;`<button>` |
+| 759 | `#levelName` &nbsp;`<span>` |
+| 760 | `#sStars` &nbsp;`<span>` |
+| 761 | `#shiftNow` &nbsp;`<span>` |
+| 766 | `#sMoves` &nbsp;`<b>` |
+| 767 | `#sPar` &nbsp;`<b>` |
+| 768 | `#sBest` &nbsp;`<b>` |
+| 769 | `#sHoles` &nbsp;`<b>` |
+| 770 | `#stDirt` &nbsp;`<div>` |
+| 770 | `#sDirt` &nbsp;`<b>` |
+| 771 | `#stTempo` &nbsp;`<div>` |
+| 771 | `#sTempo` &nbsp;`<b>` |
+| 772 | `#stTime` &nbsp;`<div>` |
+| 772 | `#sTime` &nbsp;`<b>` |
+| 775 | `#banner` &nbsp;`<div>` |
+| 777 | `#objectives` &nbsp;`<div>` |
+| 778 | `#ob0` &nbsp;`<span>` |
+| 779 | `#ob1` &nbsp;`<span>` |
+| 780 | `#ob2` &nbsp;`<span>` |
+| 784 | `#stage` &nbsp;`<div>` |
+| 784 | `#board` &nbsp;`<div>` |
+| 789 | `#play` &nbsp;`<div>` |
+| 790 | `#actions` &nbsp;`<div>` |
+| 791 | `#bWait` &nbsp;`<button>` |
+| 792 | `#bUndo` &nbsp;`<button>` |
+| 793 | `#bReset` &nbsp;`<button>` |
+| 794 | `#bHint` &nbsp;`<button>` |
+| 797 | `#pad` &nbsp;`<div>` |
+| 803 | `#drawerToggle` &nbsp;`<button>` |
+| 806 | `#gen` &nbsp;`<div>` |
+| 808 | `#drawer` &nbsp;`<div>` |
+| 810 | `#bPrev` &nbsp;`<button>` |
+| 811 | `#bNext` &nbsp;`<button>` |
+| 812 | `#bDaily` &nbsp;`<button>` |
+| 818 | `#levels` &nbsp;`<div>` |
+| 821 | `#bEdit` &nbsp;`<button>` |
+| 822 | `#bImport` &nbsp;`<button>` |
+| 824 | `#community` &nbsp;`<div>` |
+| 842 | `#adBottom` &nbsp;`<div>` |
+| 844 | `#win` &nbsp;`<div>` |
+| 845 | `#wTitle` &nbsp;`<h2>` |
+| 846 | `#wStars` &nbsp;`<div>` |
+| 847 | `#wBody` &nbsp;`<p>` |
+| 849 | `#wReplay` &nbsp;`<button>` |
+| 850 | `#wShare` &nbsp;`<button>` |
+| 851 | `#wNext` &nbsp;`<button>` |
+| 855 | `#lose` &nbsp;`<div>` |
+| 856 | `#lTitle` &nbsp;`<h2>` |
+| 857 | `#lBody` &nbsp;`<p>` |
+| 859 | `#lUndo` &nbsp;`<button>` |
+| 860 | `#lReset` &nbsp;`<button>` |
+| 864 | `#settings` &nbsp;`<div>` |
+| 866 | `#soundTag` &nbsp;`<button>` |
+| 867 | `#setHaptic` &nbsp;`<div>` |
+| 868 | `#hapticTag` &nbsp;`<button>` |
+| 869 | `#setTouch` &nbsp;`<div>` |
+| 870 | `#touchTag` &nbsp;`<button>` |
+| 871 | `#diffTag` &nbsp;`<button>` |
+| 872 | `#setTimeTrial` &nbsp;`<div>` |
+| 873 | `#timeTrialTag` &nbsp;`<button>` |
+| 878 | `#setReset` &nbsp;`<button>` |
+| 879 | `#setClose` &nbsp;`<button>` |
+| 883 | `#editor` &nbsp;`<div>` |
+| 883 | `#edCard` &nbsp;`<div>` |
+| 885 | `#edTools` &nbsp;`<div>` |
+| 893 | `#edGrid` &nbsp;`<div>` |
+| 899 | `#edName` &nbsp;`<input>` |
+| 900 | `#edStatus` &nbsp;`<div>` |
+| 901 | `#edCode` &nbsp;`<div>` |
+| 901 | `#edCodeText` &nbsp;`<textarea>` |
+| 903 | `#edVerify` &nbsp;`<button>` |
+| 904 | `#edPlay` &nbsp;`<button>` |
+| 905 | `#edCopy` &nbsp;`<button>` |
+| 906 | `#edClose` &nbsp;`<button>` |
+| 910 | `#importer` &nbsp;`<div>` |
+| 913 | `#impText` &nbsp;`<textarea>` |
+| 914 | `#impStatus` &nbsp;`<div>` |
+| 916 | `#impGo` &nbsp;`<button>` |
+| 917 | `#impClose` &nbsp;`<button>` |
+| 921 | `#diff` &nbsp;`<div>` |
+| 921 | `#diffCard` &nbsp;`<div>` |
 
 ## Script declarations
 
 | lines | kind | name |
 |---|---|---|
-| 900-1133 | const | `LEVELS` |
-| 1138-1142 | const | `DIFFS` |
-| 1143 | const | `DIFF_ORDER` |
-| 1145-1153 | function | `escFor` |
-| 1160-1170 | const | `SOLUTIONS` |
-| 1172 | const | `WALL` |
-| 1173 | const | `DIRS` |
-| 1174 | const | `WAIT` |
-| 1175 | const | `MOVES` |
-| 1176 | const | `MOVECH` |
-| 1177 | const | `SAVE_KEY` |
-| 1178 | const | `START_HINTS` |
-| 1183 | const | `PLAY_URL` |
-| 1198 | const | `ADS` |
-| 1200 | const | `$` |
-| 1201 | const | `boardEl` |
-| 1203 | let | `lv` |
-| 1204 | let | `diff` |
-| 1205 | let | `custom` |
-| 1206 | let | `hint` |
-| 1215-1220 | function | `clearNote` |
-| 1221 | let | `usedHint` |
-| 1222 | let | `shareText` |
-| 1223 | let | `pileEls` |
-| 1224 | let | `SV` |
-| 1225 | let | `best` |
-| 1226 | let | `startTime` |
-| 1233 | let | `pausedMs` |
-| 1234 | const | `clockNow` |
-| 1236-1252 | function | `load` |
-| 1275 | let | `actx` |
-| 1276-1282 | function | `audio` |
-| 1283-1288 | function | `env` |
-| 1290-1297 | function | `tone` |
-| 1299-1312 | function | `thud` |
-| 1314-1322 | const | `SOUNDS` |
-| 1323 | let | `lastCue` |
-| 1324-1330 | function | `playSound` |
-| 1332 | const | `BUZZ` |
-| 1336 | const | `canBuzz` |
-| 1338-1341 | function | `buzz` |
-| 1342-1344 | function | `save` |
-| 1352 | const | `bestSlot` |
-| 1353 | const | `bestHere` |
-| 1359-1363 | function | `playedMs` |
-| 1364 | const | `getElapsedTime` |
-| 1365-1369 | const | `bestTimeHere` |
-| 1373 | const | `STARS` |
-| 1374-1379 | function | `starsFor` |
-| 1380 | const | `totalStars` |
-| 1384-1409 | function | `parse` |
-| 1411-1429 | function | `buildVehicles` |
-| 1431 | const | `gcd` |
-| 1432 | const | `lcm` |
-| 1443-1455 | function | `computeTiming` |
-| 1458-1461 | function | `phaseOf` |
-| 1464-1468 | function | `effEvery` |
-| 1470-1479 | function | `buildAdv` |
-| 1480-1483 | function | `maxTier` |
-| 1484-1487 | function | `tempoTier` |
-| 1490-1492 | function | `vPos` |
-| 1493-1507 | function | `vFacing` |
-| 1508-1510 | function | `vehicleAt` |
-| 1512-1516 | function | `freshState` |
-| 1517-1521 | function | `clone` |
-| 1524 | const | `key` |
-| 1525 | const | `inside` |
-| 1526 | const | `isWall` |
-| 1527 | const | `isMarsh` |
-| 1528 | const | `isGate` |
-| 1529 | const | `isOpenPit` |
-| 1530-1533 | function | `pileAt` |
-| 1541-1581 | function | `step` |
-| 1583 | const | `holesLeft` |
-| 1584 | const | `dirtLeft` |
-| 1585 | const | `isWon` |
-| 1598-1624 | function | `buildReach` |
-| 1626-1630 | function | `unfilledMask` |
-| 1631-1639 | function | `usableDirt` |
-| 1640 | const | `isStuck` |
-| 1649-1653 | function | `stateKey` |
-| 1663-1686 | function | `solveFrom` |
-| 1692-1731 | function | `findAnyFrom` |
-| 1734-1740 | function | `solveDef` |
-| 1750-1757 | function | `mulberry32` |
-| 1758-1762 | const | `TIERS` |
-| 1764-1807 | function | `makeCandidate` |
-| 1810-1833 | async fn | `generateSite` |
-| 1840-1844 | function | `todayUTC` |
-| 1858 | const | `CODE_TAG` |
-| 1859 | const | `MAX_EDIT_DIRT` |
-| 1861 | const | `b64` |
-| 1863-1864 | const | `unb64` |
-| 1866-1869 | function | `encodeLevel` |
-| 1870-1881 | function | `decodeLevel` |
-| 1882-1886 | const | `codeKey` |
-| 1889-1909 | function | `verifyDef` |
-| 1912-1915 | function | `libLoad` |
-| 1916-1919 | function | `libSave` |
-| 1920-1927 | function | `libAdd` |
-| 1929-1963 | function | `renderCommunity` |
-| 1972-1993 | function | `copyText` |
-| 1996 | let | `ed` |
-| 1997-2005 | function | `edNew` |
-| 2006 | function | `edRows` |
-| 2007-2008 | function | `edDef` |
-| 2010-2034 | function | `edRender` |
-| 2035-2046 | function | `edPaint` |
-| 2047-2052 | function | `edStatus` |
-| 2053-2061 | function | `edResize` |
-| 2064-2114 | function | `buildBoard` |
-| 2128-2133 | function* | `layoutKids` |
-| 2135-2185 | function | `fitCell` |
-| 2188 | let | `cellPx` |
-| 2189-2192 | function | `place` |
-| 2194-2292 | function | `render` |
-| 2300 | let | `pickerEls` |
-| 2301-2313 | function | `buildPicker` |
-| 2314-2335 | function | `renderPicker` |
-| 2338-2342 | const | `FAILS` |
-| 2344-2358 | function | `startLevel` |
-| 2360-2365 | function | `loadLevel` |
-| 2367-2370 | function | `loadCustom` |
-| 2372-2379 | function | `setDiff` |
-| 2381 | let | `lastMoveAt` |
-| 2382-2425 | function | `doMove` |
-| 2430-2440 | function | `buildShare` |
-| 2442-2498 | function | `finish` |
-| 2501-2543 | function | `showHint` |
-| 2545-2551 | function | `lose` |
-| 2553-2565 | function | `undo` |
-| 2568-2569 | const | `KEYS` |
-| 2577 | const | `HOLD_DELAY` |
-| 2578 | let | `heldDirs` |
-| 2579-2583 | function | `holdTick` |
-| 2584-2590 | function | `pressDir` |
-| 2591-2595 | function | `releaseDir` |
-| 2596 | function | `releaseAll` |
-| 2603 | const | `CONTROL_TAGS` |
-| 2604 | const | `isControl` |
-| 2606 | const | `OVERLAY_IDS` |
-| 2607 | const | `openOverlay` |
-| 2609 | const | `overlayButtons` |
-| 2614-2621 | function | `focusOverlay` |
-| 2622-2626 | function | `showOverlay` |
-| 2627-2632 | function | `moveFocus` |
-| 2692 | const | `restart` |
-| 2716-2719 | function | `closeAllOverlays` |
-| 2754 | let | `painting` |
-| 2755-2759 | const | `edCellFrom` |
-| 2775 | let | `edVerified` |
-| 2826-2832 | function | `paintHaptics` |
-| 2844 | const | `isTouch` |
-| 2846-2853 | function | `paintTouchMode` |
-| 2860-2864 | function | `paintSound` |
-| 2873-2877 | function | `paintTimeTrial` |
-| 2886 | let | `generating` |
-| 2887-2906 | async fn | `newSite` |
-| 2924 | let | `tx` |
-| 2936-2940 | function | `swipeIntent` |
-| 2974 | const | `savedDiff` |
-| 2992-2995 | function | `prefersReducedMotion` |
-| 2997 | let | `titleTimer` |
-| 2998-3017 | function | `buildTitle` |
-| 3018-3044 | function | `runTitle` |
-| 3045-3055 | function | `closeTitle` |
-| 3059 | const | `drawerEl` |
-| 3060-3065 | function | `setDrawer` |
-| 3071 | const | `lastName` |
-| 3072 | const | `resumeAt` |
-| 3087-3446 | async fn | `selfTest` |
-| 3448-3462 | function | `renderSelfTest` |
+| 960-1193 | const | `LEVELS` |
+| 1198-1202 | const | `DIFFS` |
+| 1203 | const | `DIFF_ORDER` |
+| 1205-1213 | function | `escFor` |
+| 1220-1230 | const | `SOLUTIONS` |
+| 1232 | const | `WALL` |
+| 1233 | const | `DIRS` |
+| 1234 | const | `WAIT` |
+| 1235 | const | `MOVES` |
+| 1236 | const | `MOVECH` |
+| 1237 | const | `SAVE_KEY` |
+| 1238 | const | `START_HINTS` |
+| 1243 | const | `PLAY_URL` |
+| 1258 | const | `ADS` |
+| 1260 | const | `$` |
+| 1261 | const | `boardEl` |
+| 1263 | let | `lv` |
+| 1264 | let | `diff` |
+| 1265 | let | `custom` |
+| 1266 | let | `hint` |
+| 1275-1280 | function | `clearNote` |
+| 1281 | let | `usedHint` |
+| 1282 | let | `shareText` |
+| 1283 | let | `pileEls` |
+| 1284 | let | `SV` |
+| 1285 | let | `best` |
+| 1286 | let | `startTime` |
+| 1293 | let | `pausedMs` |
+| 1294 | const | `clockNow` |
+| 1296-1312 | function | `load` |
+| 1335 | let | `actx` |
+| 1336-1342 | function | `audio` |
+| 1343-1348 | function | `env` |
+| 1350-1357 | function | `tone` |
+| 1359-1372 | function | `thud` |
+| 1374-1382 | const | `SOUNDS` |
+| 1383 | let | `lastCue` |
+| 1384-1390 | function | `playSound` |
+| 1392 | const | `BUZZ` |
+| 1396 | const | `canBuzz` |
+| 1398-1401 | function | `buzz` |
+| 1402-1404 | function | `save` |
+| 1412 | const | `bestSlot` |
+| 1413 | const | `bestHere` |
+| 1419-1423 | function | `playedMs` |
+| 1424 | const | `getElapsedTime` |
+| 1425-1429 | const | `bestTimeHere` |
+| 1433 | const | `STARS` |
+| 1434-1439 | function | `starsFor` |
+| 1440 | const | `totalStars` |
+| 1444-1469 | function | `parse` |
+| 1471-1489 | function | `buildVehicles` |
+| 1491 | const | `gcd` |
+| 1492 | const | `lcm` |
+| 1503-1515 | function | `computeTiming` |
+| 1518-1521 | function | `phaseOf` |
+| 1524-1528 | function | `effEvery` |
+| 1530-1539 | function | `buildAdv` |
+| 1540-1543 | function | `maxTier` |
+| 1544-1547 | function | `tempoTier` |
+| 1550-1552 | function | `vPos` |
+| 1553-1567 | function | `vFacing` |
+| 1568-1570 | function | `vehicleAt` |
+| 1572-1576 | function | `freshState` |
+| 1577-1581 | function | `clone` |
+| 1584 | const | `key` |
+| 1585 | const | `inside` |
+| 1586 | const | `isWall` |
+| 1587 | const | `isMarsh` |
+| 1588 | const | `isGate` |
+| 1589 | const | `isOpenPit` |
+| 1590-1593 | function | `pileAt` |
+| 1601-1641 | function | `step` |
+| 1643 | const | `holesLeft` |
+| 1644 | const | `dirtLeft` |
+| 1645 | const | `isWon` |
+| 1658-1684 | function | `buildReach` |
+| 1686-1690 | function | `unfilledMask` |
+| 1691-1699 | function | `usableDirt` |
+| 1700 | const | `isStuck` |
+| 1709-1713 | function | `stateKey` |
+| 1723-1746 | function | `solveFrom` |
+| 1752-1791 | function | `findAnyFrom` |
+| 1794-1800 | function | `solveDef` |
+| 1810-1817 | function | `mulberry32` |
+| 1818-1822 | const | `TIERS` |
+| 1824-1867 | function | `makeCandidate` |
+| 1870-1893 | async fn | `generateSite` |
+| 1900-1904 | function | `todayUTC` |
+| 1918 | const | `CODE_TAG` |
+| 1919 | const | `MAX_EDIT_DIRT` |
+| 1921 | const | `b64` |
+| 1923-1924 | const | `unb64` |
+| 1926-1929 | function | `encodeLevel` |
+| 1930-1941 | function | `decodeLevel` |
+| 1942-1946 | const | `codeKey` |
+| 1949-1969 | function | `verifyDef` |
+| 1972-1975 | function | `libLoad` |
+| 1976-1979 | function | `libSave` |
+| 1980-1987 | function | `libAdd` |
+| 1989-2023 | function | `renderCommunity` |
+| 2032-2053 | function | `copyText` |
+| 2056 | let | `ed` |
+| 2057-2065 | function | `edNew` |
+| 2066 | function | `edRows` |
+| 2067-2068 | function | `edDef` |
+| 2070-2094 | function | `edRender` |
+| 2095-2106 | function | `edPaint` |
+| 2107-2112 | function | `edStatus` |
+| 2113-2121 | function | `edResize` |
+| 2124-2174 | function | `buildBoard` |
+| 2188-2193 | function* | `layoutKids` |
+| 2195-2245 | function | `fitCell` |
+| 2248 | let | `cellPx` |
+| 2249-2252 | function | `place` |
+| 2254-2352 | function | `render` |
+| 2360 | let | `pickerEls` |
+| 2361-2373 | function | `buildPicker` |
+| 2374-2395 | function | `renderPicker` |
+| 2398-2402 | const | `FAILS` |
+| 2404-2418 | function | `startLevel` |
+| 2420-2425 | function | `loadLevel` |
+| 2427-2430 | function | `loadCustom` |
+| 2432-2439 | function | `setDiff` |
+| 2441 | let | `lastMoveAt` |
+| 2442-2485 | function | `doMove` |
+| 2490-2500 | function | `buildShare` |
+| 2502-2558 | function | `finish` |
+| 2561-2603 | function | `showHint` |
+| 2605-2611 | function | `lose` |
+| 2613-2625 | function | `undo` |
+| 2628-2629 | const | `KEYS` |
+| 2637 | const | `HOLD_DELAY` |
+| 2638 | let | `heldDirs` |
+| 2639-2643 | function | `holdTick` |
+| 2644-2650 | function | `pressDir` |
+| 2651-2655 | function | `releaseDir` |
+| 2656 | function | `releaseAll` |
+| 2663 | const | `CONTROL_TAGS` |
+| 2664 | const | `isControl` |
+| 2666 | const | `OVERLAY_IDS` |
+| 2667 | const | `openOverlay` |
+| 2669 | const | `overlayButtons` |
+| 2674-2681 | function | `focusOverlay` |
+| 2682-2686 | function | `showOverlay` |
+| 2687-2692 | function | `moveFocus` |
+| 2752 | const | `restart` |
+| 2776-2779 | function | `closeAllOverlays` |
+| 2814 | let | `painting` |
+| 2815-2819 | const | `edCellFrom` |
+| 2835 | let | `edVerified` |
+| 2886-2892 | function | `paintHaptics` |
+| 2904 | const | `isTouch` |
+| 2906-2913 | function | `paintTouchMode` |
+| 2920-2924 | function | `paintSound` |
+| 2933-2937 | function | `paintTimeTrial` |
+| 2946 | let | `generating` |
+| 2947-2966 | async fn | `newSite` |
+| 2984 | let | `tx` |
+| 2996-3000 | function | `swipeIntent` |
+| 3034 | const | `savedDiff` |
+| 3052-3055 | function | `prefersReducedMotion` |
+| 3057 | let | `titleTimer` |
+| 3058-3077 | function | `buildTitle` |
+| 3078-3104 | function | `runTitle` |
+| 3105-3115 | function | `closeTitle` |
+| 3119 | const | `drawerEl` |
+| 3120-3129 | function | `setDrawer` |
+| 3135 | const | `lastName` |
+| 3136 | const | `resumeAt` |
+| 3151-3510 | async fn | `selfTest` |
+| 3512-3526 | function | `renderSelfTest` |
 
 ## Event wiring
 
@@ -600,49 +611,49 @@ this, what ran?" without reading the whole script.
 
 | line | target | event |
 |---|---|---|
-| 2597 | `(page)` | `keyup` |
-| 2598 | `(page)` | `blur` |
-| 2633 | `(page)` | `keydown` |
-| 2690 | `#bWait` | `onclick` |
-| 2691 | `#bUndo` | `onclick` |
-| 2693 | `#bReset` | `onclick` |
-| 2694 | `#bPrev` | `onclick` |
-| 2695 | `#bNext` | `onclick` |
-| 2696 | `#wReplay` | `onclick` |
-| 2697 | `#wShare` | `onclick` |
-| 2698 | `#wNext` | `onclick` |
-| 2699 | `#lUndo` | `onclick` |
-| 2700 | `#lReset` | `onclick` |
-| 2701 | `#diffTag` | `onclick` |
-| 2702 | `#gearTag` | `onclick` |
-| 2703 | `#setClose` | `onclick` |
-| 2704 | `#setReset` | `onclick` |
-| 2713 | `#bHint` | `onclick` |
-| 2720 | `#bEdit` | `onclick` |
-| 2728 | `#edClose` | `onclick` |
-| 2729 | `#impClose` | `onclick` |
-| 2730 | `#bImport` | `onclick` |
-| 2737 | `#edTools button` | `forEach` |
-| 2744 | `.edsize button` | `forEach` |
-| 2773 | `(page)` | `pointerup` |
-| 2776 | `#edVerify` | `onclick` |
-| 2796 | `#edCopy` | `onclick` |
-| 2797 | `#edPlay` | `onclick` |
-| 2804 | `#impGo` | `onclick` |
-| 2833 | `#hapticTag` | `onclick` |
-| 2854 | `#touchTag` | `onclick` |
-| 2865 | `#soundTag` | `onclick` |
-| 2878 | `#timeTrialTag` | `onclick` |
-| 2908 | `[data-tier]` | `forEach` |
-| 2913 | `#bDaily` | `onclick` |
-| 2917 | `#pad button` | `forEach` |
-| 2920 | `.pick` | `forEach` |
-| 2946 | `(page)` | `resize` |
-| 2962 | `(page)` | `visibilitychange` |
-| 2977 | `.pick` | `forEach` |
-| 3056 | `#tStart` | `onclick` |
-| 3057 | `#title` | `onclick` |
-| 3066 | `#drawerToggle` | `onclick` |
+| 2657 | `(page)` | `keyup` |
+| 2658 | `(page)` | `blur` |
+| 2693 | `(page)` | `keydown` |
+| 2750 | `#bWait` | `onclick` |
+| 2751 | `#bUndo` | `onclick` |
+| 2753 | `#bReset` | `onclick` |
+| 2754 | `#bPrev` | `onclick` |
+| 2755 | `#bNext` | `onclick` |
+| 2756 | `#wReplay` | `onclick` |
+| 2757 | `#wShare` | `onclick` |
+| 2758 | `#wNext` | `onclick` |
+| 2759 | `#lUndo` | `onclick` |
+| 2760 | `#lReset` | `onclick` |
+| 2761 | `#diffTag` | `onclick` |
+| 2762 | `#gearTag` | `onclick` |
+| 2763 | `#setClose` | `onclick` |
+| 2764 | `#setReset` | `onclick` |
+| 2773 | `#bHint` | `onclick` |
+| 2780 | `#bEdit` | `onclick` |
+| 2788 | `#edClose` | `onclick` |
+| 2789 | `#impClose` | `onclick` |
+| 2790 | `#bImport` | `onclick` |
+| 2797 | `#edTools button` | `forEach` |
+| 2804 | `.edsize button` | `forEach` |
+| 2833 | `(page)` | `pointerup` |
+| 2836 | `#edVerify` | `onclick` |
+| 2856 | `#edCopy` | `onclick` |
+| 2857 | `#edPlay` | `onclick` |
+| 2864 | `#impGo` | `onclick` |
+| 2893 | `#hapticTag` | `onclick` |
+| 2914 | `#touchTag` | `onclick` |
+| 2925 | `#soundTag` | `onclick` |
+| 2938 | `#timeTrialTag` | `onclick` |
+| 2968 | `[data-tier]` | `forEach` |
+| 2973 | `#bDaily` | `onclick` |
+| 2977 | `#pad button` | `forEach` |
+| 2980 | `.pick` | `forEach` |
+| 3006 | `(page)` | `resize` |
+| 3022 | `(page)` | `visibilitychange` |
+| 3037 | `.pick` | `forEach` |
+| 3116 | `#tStart` | `onclick` |
+| 3117 | `#title` | `onclick` |
+| 3130 | `#drawerToggle` | `onclick` |
 
 ## tools/
 

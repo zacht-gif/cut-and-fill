@@ -361,6 +361,41 @@ body.ads .adslot{display:flex}
   button{padding:7px 11px}
   /* the pad keeps its full size here on purpose — it is the one control you
      press without looking, so it gets the space rather than giving it up */
+
+  /* One caption in the stats row is two words. At 390px and narrower it
+     wrapped, and because the chips are flex siblings that stretch to match,
+     that single label made all six of them 64px instead of 44px. The row
+     already scrolls sideways, so it can afford to be wide; height is the
+     axis with nothing to spare. */
+  .stat i{white-space:nowrap}
+
+  /* Four buttons that wrapped onto a second row below 390px wide. A grid
+     holds them on one line at every width — 38px back, on exactly the phones
+     that had the least to give. */
+  #actions{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  #actions button{padding:7px 4px;font-size:10px;letter-spacing:.03em}
+}
+
+/* The drawer, on anything hand-held and held upright.
+
+   itch serves the game in an iframe with scrolling="no", so there is no page
+   scroll for a player to reach anything below the fold with — not an awkward
+   scroll, none. The open drawer puts about 600px of level picker under the
+   game, so in portrait the entire campaign list was simply unreachable, at
+   every phone height including the tall ones. Landscape already answered this
+   by making the drawer its own scrolling sheet; this is the same answer for
+   upright, and it is why landscape was the half that felt fine.
+
+   max-width:900px keeps phones and tablets and leaves a tall portrait desktop
+   monitor alone, where the drawer still fits in the column as it always did. */
+@media (orientation:portrait) and (max-width:900px){
+  #drawer:not(.closed){position:fixed;inset:0;z-index:16;overflow:auto;
+    max-width:none;background:var(--bg);padding:16px 14px 64px}
+  /* The sheet covers the toggle, so the toggle has to come with it. Without
+     this the only way out is the browser's back button, which on itch leaves
+     the game rather than closing the drawer. */
+  body.drawer #drawerToggle{position:fixed;left:50%;translate:-50% 0;
+    bottom:12px;z-index:17;margin:0}
 }
 
 #objectives{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
@@ -553,6 +588,27 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   #pad button{font-size:18px}
 }
 
+/* Shorter still, and now the column genuinely does not hold everything.
+
+   fitCell floors the board at 160px tall, so when the chrome above and below
+   leaves it less than that, the board takes 160px anyway and the surplus goes
+   past the bottom of the screen. That was a reasonable trade when the surplus
+   could be scrolled to. In an iframe that cannot scroll it is not a trade at
+   all — it is the d-pad going missing — so the chrome gives up its space
+   first, starting with what you do not read mid-move. */
+@media (max-height:600px) and (orientation:portrait){
+  body{gap:6px;padding:8px 10px 8px}
+  #objectives{display:none}
+  #pad{grid-template-rows:repeat(3,44px);gap:6px}
+  /* Its own row costs 30px plus a gap, and at this height that row is the
+     difference between the d-pad fitting and not. As a pill it costs nothing:
+     fitCell skips anchored elements, so the board takes the space back. Right
+     is where there is room — the pad is centred and 180px wide, so it clears.
+     With the drawer open the sheet rule above moves it to centre instead. */
+  #drawerToggle{position:fixed;right:8px;bottom:8px;z-index:15;
+    padding:4px 9px;font-size:9px}
+}
+
 /* ---------------- phone held sideways ----------------
    Portrait is one column and height is already the scarce thing. Turned
    sideways it gets much worse: about 520px of stacked rows into 360-430px of
@@ -571,9 +627,13 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
    the trade runs backwards. In landscape there is 667-932px of width and
    almost no height, so it runs the right way round.
 
-   Deliberately not overflow:hidden. If something here does not fit, a page
-   that scrolls is the honest outcome; a page that silently clips a control
-   is the bug this file has already been bitten by once. */
+   Deliberately not overflow:hidden — but not because the page can scroll.
+   It cannot: itch embeds the game in an iframe with scrolling="no", so
+   anything past the fold is unreachable rather than merely inconvenient.
+   That is the reason the layout has to actually fit rather than trusting a
+   scrollbar to cover for it, and the reason the drawer is a sheet in both
+   orientations now. overflow:hidden would still be worse, because it would
+   hide the evidence when it does not fit. */
 @media (orientation:landscape) and (max-height:520px){
   body{
     height:100vh; height:100dvh;
@@ -3059,6 +3119,10 @@ $("#title").onclick=closeTitle;
 const drawerEl=$("#drawer");
 function setDrawer(open){
   drawerEl.classList.toggle("closed",!open);
+  /* The portrait sheet pins the toggle on top of itself, and the toggle lives
+     inside #play — an earlier sibling — so CSS cannot reach it from the
+     drawer's own state. The body carries the flag instead. */
+  document.body.classList.toggle("drawer",open);
   $("#drawerToggle").setAttribute("aria-expanded",open?"true":"false");
   $("#drawerToggle").textContent=open?"▲ Hide levels":"☰ Levels & Help";
   if(lv){ fitCell(); render(); }
