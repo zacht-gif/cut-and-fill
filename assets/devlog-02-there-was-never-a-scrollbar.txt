@@ -6,14 +6,19 @@ a Markdown one. Same trap as assets/itch-description.txt and devlog 1: pasting
 below has none in it. Paste it, then use the editor's own toolbar for the title
 and any bold runs.
 
-Images, in assets/screenshots/ (regenerate with the devlog2 shots if needed):
+Images: two files, in assets/screenshots/. Each is already a before-and-after
+pair joined side by side - before on the left, after on the right - so each
+marker below is one upload, and the comparison reads without scrolling.
 
-  devlog2-levels-before.png / -after.png   375x812, drawer open. The pair that
-    carries the post: before is a screen with no level tiles on it at all,
-    after is all 25 plus a pinned way out. Place at [SHOT 1].
-  devlog2-dpad-before.png / -after.png     360x553, level 25. Before has the
-    down arrow clipped by the screen edge, DIRT LEFT wrapped to two lines and
-    HINT pushed onto a second row. Place at [SHOT 2].
+  devlog2-levels.png   1464x1600.  360x800 Android, drawer open. The one that
+    carries the post: the left half has no level tiles on it anywhere, while
+    the button still says HIDE LEVELS. Goes at [SHOT 1].
+    Caption: "Levels drawer open, before and after. Same button, same phone."
+
+  devlog2-dpad.png     1464x1106.  360x553, a short frame. Left half has the
+    down arrow clipped off by the screen edge, DIRT LEFT wrapped onto two
+    lines and HINT pushed to a second row. Goes at [SHOT 2].
+    Caption: "The d-pad on a short screen. The down button was below the fold."
 
 Delete any marker line you post without.
 
@@ -36,11 +41,15 @@ past the bottom of the frame is not hard to reach, it is gone.
 That turns "overflows by 80 pixels" from a blemish into missing controls.
 
 In portrait, opening the levels drawer put the level picker underneath the
-game, 528 pixels of it below the fold on a 375 by 812 iPhone. Counting the
-tiles you could actually reach, on that phone and on a 360 by 800 Android:
-zero of twenty-five. Not awkward to reach. None of them. You pressed the
-button and nothing you could see changed. On a taller 390 by 844 frame you
-got the first twelve and nothing past level 12.
+game - 560 pixels of it below the fold on a 360 by 800 Android. Counting the
+level tiles you could actually reach on that phone: none. Not one of the
+twenty-five was on screen. You pressed the button, the button changed to say
+HIDE LEVELS, and nothing else about the screen was different.
+
+A 375 by 812 iPhone did slightly better and it is not much of a defence: the
+top row of five was clipped in half by the bottom edge, and the other twenty
+were nowhere. A taller 390 by 844 got the first six whole, half of the next
+six, and nothing at all past level 12.
 
 [SHOT 1]
 
