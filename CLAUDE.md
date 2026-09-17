@@ -110,34 +110,46 @@ visit.
 
 - **`validate.py` takes over two minutes** on the full campaign. It has not
   hung. Budget for it, or scope it with `--diff`.
-- **A rebuild is not a deploy.** itch serves whatever was last pushed to the
-  channel; nothing about committing or pushing to git touches it.
-  `node tools/publish.mjs` is the one command — it proves the game works, then
-  sends `index.html` to `thornsrl/cut-fill:html5` with butler. To check what
-  players actually have, fetch the embed URL and diff it against local — the
-  only legitimate difference is itch's injected `htmlgame.js`.
-- **And a push is not a deploy either, until the upload swaps.** `butler
-  status` describes the *channel*; the game page embeds the *upload*, and the
-  two agree only once itch has swapped. On 2026-09-14 butler reported build
-  #1980281 complete while the page still served #1973885 — the build from the
-  previous month, with none of the new work in it. Checking once, straight
-  after the push, reports success at exactly the moment it is false.
+- **A rebuild is not a deploy, and neither is a push.** itch serves whatever
+  the *upload* points at; nothing about committing, pushing to git, or even
+  pushing to the channel with butler changes that by itself.
+- **The deploy has two halves, and the second one is yours.**
+  `node tools/publish.mjs` is the first: it proves the game works, then sends
+  `index.html` to `thornsrl/cut-fill:html5`. Then itch waits for Zach to open
+  itch.io and click the notification in the banner by their profile. Until that
+  click, players keep getting the previous build, and there is nothing a
+  script can do about it. `publish.mjs` says so on the way out.
 
-  **Budget an unpredictable wait, and do not read a slow one as a failure.**
-  Two deploys down the same path, within 4 KB of each other in size: the first
-  swapped in about 40 seconds, the second took about 41 minutes with `butler
-  status` reporting the build complete the entire time. Re-pushing during the
-  slow one would have produced a redundant build and muddied the picture.
-  Resolve what is really being served, and poll until the build id moves:
+  This was mistaken for slow processing for weeks, and the note here recorded
+  the mistake twice — first as "about 40 seconds", then as an unpredictable
+  range. Four deploys: about 40 seconds, about 5 minutes, about 41 minutes,
+  and one that sat over five hours and swapped 3 minutes after Zach clicked.
+  A queue with variance does not look like that; a queue with a human in it
+  does, and the apparent "wait" tracks how soon he next opened itch.
+
+  **Confirmed once, and the exact control is not pinned down.** Zach named the
+  banner notification as what he clicks; the swap followed within 3 minutes
+  after 5 hours of nothing. That is one trial, and he was not certain the
+  banner is the operative control rather than something else on the page he
+  touched at the same time. Enough to act on — do not wait on a build and
+  call it processing — but if a future deploy swaps with nobody clicking
+  anything, this paragraph is what was wrong, not the observation.
+
+  `butler status` reporting `√` means the build exists, not that anyone has
+  it. Both are true at once for as long as the click is outstanding:
 
   ```bash
+  butler status thornsrl/cut-fill:html5     # the channel
   curl -s https://itch.io/embed-upload/19217413 | grep -o 'html/19217413-[0-9]*'
   ```
 
   `19217413` is the upload id and is stable; the number after the dash is the
   build, and that is the thing to watch. Per-build URLs are not addressable
   directly — one itch is not currently serving returns 404 — so the
-  embed-upload lookup is the way in.
+  embed-upload lookup is the way in. To check the built artifact before it
+  goes live, `butler fetch thornsrl/cut-fill:html5 <dir>` pulls exactly what
+  will be served; it should be byte-identical to `index.html`. Once it is
+  live, the only legitimate difference is itch's injected `htmlgame.js`.
 - **itch's description field is rich text, not Markdown.** Pasting Markdown
   puts literal `###` and `**` on the live page, which is what happened at
   launch and stood for a month. The paste-ready copy is
