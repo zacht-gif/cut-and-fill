@@ -272,6 +272,10 @@ body.pad #stage{touch-action:pan-y}
    came above it. Sized to sit with the buttons rather than over them. */
 .rowlab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink-dim)}
+/* One flex item, so the three tiers move to the next line together instead of
+   one at a time. At 320px the row wrapped two-and-one and left Hard stranded
+   underneath, which reads as a broken group rather than a wrapped one. */
+.tiers{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 button{font:inherit;color:var(--ink);background:var(--panel);
   border:1px solid var(--edge);border-radius:6px;padding:8px 14px;cursor:pointer;
   letter-spacing:.1em;text-transform:uppercase;font-size:11px;transition:.12s;
@@ -854,12 +858,14 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
        one you are on. The dice was on only the first of the three. -->
   <div class="row">
     <span class="rowlab">🎲 New random site</span>
-    <button data-tier="easy"
-            title="Build a random easy site. Replaces the board, and is not recorded.">Easy</button>
-    <button data-tier="medium"
-            title="Build a random medium site. Replaces the board, and is not recorded.">Medium</button>
-    <button data-tier="hard"
-            title="Build a random hard site. Replaces the board, and is not recorded.">Hard</button>
+    <span class="tiers">
+      <button data-tier="easy"
+              title="Build a random easy site. Replaces the board, and is not recorded.">Easy</button>
+      <button data-tier="medium"
+              title="Build a random medium site. Replaces the board, and is not recorded.">Medium</button>
+      <button data-tier="hard"
+              title="Build a random hard site. Replaces the board, and is not recorded.">Hard</button>
+    </span>
   </div>
 
   <div id="levels"></div>
