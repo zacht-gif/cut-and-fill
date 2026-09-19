@@ -536,8 +536,14 @@ body.ads .adslot{display:flex}
 /* "There is a daily in here." On a phone the drawer starts closed, so without
    this the daily sits two taps away behind no signal at all. A pseudo-element
    and not a child node, because setDrawer() rewrites this button's
-   textContent every time it runs and would wipe one out. */
-#drawerToggle.pending::after{content:"";display:inline-block;
+   textContent every time it runs and would wipe one out.
+
+   Hidden while the drawer is open, because then the Daily button is on screen
+   already and a dot pointing at it says nothing. body.drawer is set by
+   setDrawer(), so this needs no JS coordination - the class keeps its one
+   meaning, "today is unplayed", and the stylesheet decides when that is worth
+   showing. */
+body:not(.drawer) #drawerToggle.pending::after{content:"";display:inline-block;
   width:6px;height:6px;border-radius:50%;background:var(--dozer);
   margin-left:7px;vertical-align:middle}
 /* width:max-content matters — the entities are absolutely positioned from the
