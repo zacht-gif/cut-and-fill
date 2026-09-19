@@ -1911,6 +1911,57 @@ function todayUTC(now){
   return {seed, date:String(seed).replace(/(\d{4})(\d\d)(\d\d)/,"$1-$2-$3")};
 }
 
+/* ---------------- the daily loop ----------------
+
+   All of this is derived from `best`, which has been recording finished
+   dailies under `daily:<seed>` since the day the daily shipped, because
+   bestSlot() returns custom.key for a custom site. So the streak needs no new
+   saved field and no SAVE_KEY bump - the data is already there, unread. */
+
+const isoDay = s => { const x=String(s);
+  return x.slice(0,4)+"-"+x.slice(4,6)+"-"+x.slice(6,8); };
+
+const dailySeedOf = c =>
+  (c && typeof c.key==="string" && c.key.slice(0,6)==="daily:") ? +c.key.slice(6) : null;
+
+/* A seed is YYYYMMDD packed into an integer, so stepping back a day is date
+   arithmetic and not subtraction: 20260901 minus one is 20260900, which is
+   not a date. Round-trip through Date.UTC and let it carry the month, the
+   year, and February. */
+function prevDaily(seed){
+  const y=Math.floor(seed/10000), m=Math.floor(seed/100)%100, d=seed%100;
+  const t=new Date(Date.UTC(y, m-1, d-1));
+  return t.getUTCFullYear()*10000+(t.getUTCMonth()+1)*100+t.getUTCDate();
+}
+
+/* Any shift counts. The shift is a difficulty choice, and ending someone's
+   streak because they moved up to Foreman would punish the player who is
+   engaging most. */
+function dailyDone(bestByDiff, seed){
+  return DIFF_ORDER.some(d => bestByDiff[d] && bestByDiff[d]["daily:"+seed]!=null);
+}
+
+/* Counting back from today, with one deliberate kindness: not having played
+   today does not break the streak, because the day is not over yet. Without
+   that the number reads zero every morning until you play, which turns a
+   reason to come back into a thing you have already lost. */
+function dailyStreak(bestByDiff, todaySeed){
+  let seed = dailyDone(bestByDiff, todaySeed) ? todaySeed : prevDaily(todaySeed);
+  let n=0;
+  while(dailyDone(bestByDiff, seed)){ n++; seed=prevDaily(seed); }
+  return n;
+}
+
+/* Whole hours and minutes. The point is "come back tomorrow", not a
+   countdown ticking in the corner. */
+function untilNextDaily(now){
+  const d=now||new Date();
+  const next=Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1);
+  const mins=Math.max(0, Math.round((next-d.getTime())/60000));
+  const h=Math.floor(mins/60), m=mins%60;
+  return h>0 ? h+"h "+m+"m" : m+"m";
+}
+
 /* ============================================================
    Level editor and sharing
 
@@ -2496,15 +2547,26 @@ function doMove(dir){
    move sequence, no level code — the point is to make a stranger curious, not
    to hand them the answer. The link is the entire reason this exists. */
 function buildShare(stars, unaided, seconds){
-  const title = custom ? custom.label : "Level "+(idx+1)+" — "+LEVELS[idx].name;
+  /* A daily is named as one, because the whole point of sharing it is that
+     the reader can play the same puzzle. "Daily Site — 2026-09-18" reads as
+     one person's private level; "Daily 2026-09-18" reads as today's. */
+  const day = dailySeedOf(custom);
+  const title = day!=null ? "Cut & Fill — Daily "+isoDay(day)
+              : "Cut & Fill: "+(custom ? custom.label
+                                       : "Level "+(idx+1)+" — "+LEVELS[idx].name);
   const mark = on => on ? "🟩" : "⬛";
   const bits = [st.moves+" moves (par "+lv.par+")"];
   if(seconds>0) bits.push(seconds.toFixed(1)+"s");
   bits.push(DIFFS[diff].name+" shift");
-  return ["Cut & Fill: "+title,
+  const lines = [title,
           "★".repeat(stars)+"☆".repeat(3-stars)+"  "+bits.join(" · "),
-          "🟩 filled  "+mark(st.moves<=lv.par)+" par  "+mark(unaided)+" unaided",
-          PLAY_URL].join("\n");
+          "🟩 filled  "+mark(st.moves<=lv.par)+" par  "+mark(unaided)+" unaided"];
+  if(day!=null){
+    const n = dailyStreak(best, todayUTC().seed);
+    if(n>1) lines.push("Streak: "+n+" days");
+  }
+  lines.push(PLAY_URL);
+  return lines.join("\n");
 }
 
 function finish(){
@@ -2556,8 +2618,17 @@ function finish(){
     : "";
   const cleanNote = (slot!=null&&unaided)
     ? "<br><span class='togo'>Unaided — no hint, no undo.</span>" : "";
+  /* The one moment a player is guaranteed to be looking is just after a win,
+     so it is the only place worth spending to say "there is another tomorrow". */
+  let dailyNote="";
+  if(dailySeedOf(custom)!=null){
+    refreshDaily();
+    const n=dailyStreak(best,todayUTC().seed);
+    dailyNote="<br><span class='earned'>Daily streak <b>"+n+"</b>"+
+              (n===1?" day":" days")+" — next site in "+untilNextDaily()+".</span>";
+  }
   $("#wBody").innerHTML="<b>"+st.moves+"</b> moves &nbsp;·&nbsp; par <b>"+lv.par+"</b>"+
-                        note+earnedNote+cleanNote+nextUp;
+                        note+earnedNote+cleanNote+dailyNote+nextUp;
   shareText = slot==null ? "" : buildShare(got, unaided, elapsed);
   $("#wShare").style.display = shareText ? "" : "none";
   $("#wNext").style.display=(custom||last)?"none":"";
@@ -2773,6 +2844,7 @@ $("#setReset").onclick=()=>{
   if(confirm("Clear all progress on all shifts?")){
     for(const d of DIFF_ORDER){ best[d]={}; SV.clean[d]={}; SV.times[d]={}; }
     SV.hints=START_HINTS; SV.awarded={};
+    refreshDaily();                      // the streak was derived from what just got wiped
     save();
     loadLevel(0);
     closeAllOverlays();
@@ -2978,6 +3050,19 @@ document.querySelectorAll("[data-tier]").forEach(b=>{
                         (Math.random()*2**31)|0,
                         "Random Site — "+b.dataset.tier, null);
 });
+/* The button carried no state at all: the same label whether today's site was
+   untouched or already three-starred, and nothing anywhere saying another one
+   arrives tomorrow. A daily nobody knows is daily is just a button. */
+function refreshDaily(){
+  const el=$("#bDaily");
+  if(!el) return;
+  const t=todayUTC();
+  const done=dailyDone(best,t.seed);
+  const n=dailyStreak(best,t.seed);
+  el.textContent="📅 Daily"+(done?" ✓":"")+(n>0?" · "+n:"");
+  el.title=(done?"Today's site is done.":"Today's site. A new one every day at UTC midnight.")
+          +(n>0?"  Streak: "+n+(n===1?" day":" days")+".":"");
+}
 $("#bDaily").onclick=()=>{
   const t=todayUTC();
   newSite("medium", t.seed, "Daily Site — "+t.date, "daily:"+t.seed);
@@ -3140,6 +3225,7 @@ $("#drawerToggle").onclick=()=>setDrawer(drawerEl.classList.contains("closed"));
 paintTouchMode();
 buildPicker();
 renderCommunity();
+refreshDaily();
 const lastName=localStorage.getItem(SAVE_KEY+".last");
 const resumeAt=LEVELS.findIndex(L=>L.name===lastName);
 loadLevel(resumeAt<0?0:resumeAt);          // a renamed/removed level just starts over
@@ -3504,6 +3590,42 @@ async function selfTest(){
      early.seed===20260807 && late.seed===20260807, early.seed+" / "+late.seed);
   ok("the daily label is derived from the daily seed",
      late.date==="2026-08-07", late.date);
+
+  // 9b. the streak. It is derived from `best` rather than stored, so what is
+  //     worth testing is the derivation - and the date arithmetic under it,
+  //     which is the part that looks like subtraction and is not.
+  ok("stepping a daily seed back crosses a month boundary",
+     prevDaily(20260901)===20260831, String(prevDaily(20260901)));
+  ok("stepping a daily seed back crosses a year boundary",
+     prevDaily(20260101)===20251231, String(prevDaily(20260101)));
+  ok("stepping a daily seed back lands on a leap day",
+     prevDaily(20240301)===20240229, String(prevDaily(20240301)));
+
+  const mkBest = pairs => { const b={};
+    for(const d of DIFF_ORDER) b[d]={};
+    for(const [d,seed] of pairs) b[d]["daily:"+seed]=1;
+    return b; };
+
+  ok("a streak counts back over consecutive days",
+     dailyStreak(mkBest([["operator",20260918],["operator",20260917],
+                         ["operator",20260916]]), 20260918)===3);
+  ok("an unplayed today does not break the streak",
+     dailyStreak(mkBest([["operator",20260917],["operator",20260916]]),
+                 20260918)===2);
+  ok("a missed day ends the streak",
+     dailyStreak(mkBest([["operator",20260918],["operator",20260916]]),
+                 20260918)===1);
+  ok("a daily done on any shift keeps the streak",
+     dailyStreak(mkBest([["foreman",20260918],["apprentice",20260917]]),
+                 20260918)===2);
+  ok("never having played a daily is a streak of none",
+     dailyStreak(mkBest([]), 20260918)===0);
+  ok("a daily site is recognised by its save key, and nothing else is",
+     dailySeedOf({key:"daily:20260918"})===20260918 &&
+     dailySeedOf({key:"CF1abc"})===null && dailySeedOf(null)===null);
+  ok("the next daily is counted to UTC midnight",
+     untilNextDaily(new Date("2026-09-18T22:30:00Z"))==="1h 30m",
+     untilNextDaily(new Date("2026-09-18T22:30:00Z")));
 
   // 10. a shared result carries the link and leaks nothing
   loadLevel(0); play(SOLUTIONS[0]);
