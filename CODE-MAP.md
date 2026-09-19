@@ -9,7 +9,7 @@
 
 # Code map - `index.html`
 
-3,731 lines, 158,022 bytes. One file: stylesheet, markup, rules, solver,
+3,781 lines, 160,328 bytes. One file: stylesheet, markup, rules, solver,
 editor and self test. There is no build step, so this *is* the source.
 
 **Use it like this** - find the thing, then read only its slice:
@@ -30,8 +30,8 @@ overwrite. Edit by anchored replacement, not by line number.
 | 1-27 | `<head>`: meta, title, inline favicon |
 | 28-754 | `<style>` - 245 rules |
 | 756-959 | `<body>` markup - 87 ids |
-| 960-3729 | `<script>` - 181 declarations |
-| 3730-3731 | close |
+| 960-3779 | `<script>` - 184 declarations |
+| 3780-3781 | close |
 
 ## Chapters
 
@@ -48,19 +48,19 @@ everything under them is listed in full further down.
 | 1608-1726 | rules |
 | 1727-1826 | Solver |
 | 1827-1930 | Random sites |
-| 1931-1998 | the daily loop |
-| 1999-2063 | Level editor and sharing |
-| 2064-2147 | the player's own library, kept beside their save |
-| 2148-2215 | the editing surface |
-| 2216-2489 | rendering |
-| 2490-2672 | game flow |
-| 2673-2739 | hint |
-| 2740-2743 | input |
-| 2744-2772 | held-key movement |
-| 2773-2888 | panels are driveable from the keyboard, same keys as the game |
-| 2889-3181 | editor wiring |
-| 3182-3283 | title screen |
-| 3284-3728 | Self test |
+| 1931-2027 | the daily loop |
+| 2028-2092 | Level editor and sharing |
+| 2093-2176 | the player's own library, kept beside their save |
+| 2177-2244 | the editing surface |
+| 2245-2518 | rendering |
+| 2519-2701 | game flow |
+| 2702-2768 | hint |
+| 2769-2772 | input |
+| 2773-2801 | held-key movement |
+| 2802-2921 | panels are driveable from the keyboard, same keys as the game |
+| 2922-3214 | editor wiring |
+| 3215-3316 | title screen |
+| 3317-3778 | Self test |
 
 ## Stylesheet
 
@@ -532,93 +532,96 @@ above it and applies only under that query.
 | 1948-1952 | function | `prevDaily` |
 | 1957-1959 | function | `dailyDone` |
 | 1965-1970 | function | `dailyStreak` |
-| 1975-1984 | function | `dailyPrompt` |
-| 1988-1997 | function | `untilNextDaily` |
-| 2011 | const | `CODE_TAG` |
-| 2012 | const | `MAX_EDIT_DIRT` |
-| 2014 | const | `b64` |
-| 2016-2017 | const | `unb64` |
-| 2019-2022 | function | `encodeLevel` |
-| 2023-2034 | function | `decodeLevel` |
-| 2035-2039 | const | `codeKey` |
-| 2042-2062 | function | `verifyDef` |
-| 2065-2068 | function | `libLoad` |
-| 2069-2072 | function | `libSave` |
-| 2073-2080 | function | `libAdd` |
-| 2082-2116 | function | `renderCommunity` |
-| 2125-2146 | function | `copyText` |
-| 2149 | let | `ed` |
-| 2150-2158 | function | `edNew` |
-| 2159 | function | `edRows` |
-| 2160-2161 | function | `edDef` |
-| 2163-2187 | function | `edRender` |
-| 2188-2199 | function | `edPaint` |
-| 2200-2205 | function | `edStatus` |
-| 2206-2214 | function | `edResize` |
-| 2217-2267 | function | `buildBoard` |
-| 2281-2286 | function* | `layoutKids` |
-| 2288-2338 | function | `fitCell` |
-| 2341 | let | `cellPx` |
-| 2342-2345 | function | `place` |
-| 2347-2445 | function | `render` |
-| 2453 | let | `pickerEls` |
-| 2454-2466 | function | `buildPicker` |
-| 2467-2488 | function | `renderPicker` |
-| 2491-2495 | const | `FAILS` |
-| 2497-2511 | function | `startLevel` |
-| 2513-2518 | function | `loadLevel` |
-| 2520-2523 | function | `loadCustom` |
-| 2525-2532 | function | `setDiff` |
-| 2534 | let | `lastMoveAt` |
-| 2535-2578 | function | `doMove` |
-| 2583-2604 | function | `buildShare` |
-| 2606-2671 | function | `finish` |
-| 2674-2716 | function | `showHint` |
-| 2718-2724 | function | `lose` |
-| 2726-2738 | function | `undo` |
-| 2741-2742 | const | `KEYS` |
-| 2750 | const | `HOLD_DELAY` |
-| 2751 | let | `heldDirs` |
-| 2752-2756 | function | `holdTick` |
-| 2757-2763 | function | `pressDir` |
-| 2764-2768 | function | `releaseDir` |
-| 2769 | function | `releaseAll` |
-| 2776 | const | `CONTROL_TAGS` |
-| 2777 | const | `isControl` |
-| 2779 | const | `OVERLAY_IDS` |
-| 2780 | const | `openOverlay` |
-| 2782 | const | `overlayButtons` |
-| 2787-2794 | function | `focusOverlay` |
-| 2795-2799 | function | `showOverlay` |
-| 2800-2805 | function | `moveFocus` |
-| 2865 | const | `restart` |
-| 2890-2893 | function | `closeAllOverlays` |
-| 2928 | let | `painting` |
-| 2929-2933 | const | `edCellFrom` |
-| 2949 | let | `edVerified` |
-| 3000-3006 | function | `paintHaptics` |
-| 3018 | const | `isTouch` |
-| 3020-3027 | function | `paintTouchMode` |
-| 3034-3038 | function | `paintSound` |
-| 3047-3051 | function | `paintTimeTrial` |
-| 3060 | let | `generating` |
-| 3061-3080 | async fn | `newSite` |
-| 3090-3110 | function | `refreshDaily` |
-| 3111-3114 | function | `startDaily` |
-| 3124 | let | `tx` |
-| 3136-3140 | function | `swipeIntent` |
-| 3174 | const | `savedDiff` |
-| 3192-3195 | function | `prefersReducedMotion` |
-| 3197 | let | `titleTimer` |
-| 3198-3217 | function | `buildTitle` |
-| 3218-3244 | function | `runTitle` |
-| 3245-3255 | function | `closeTitle` |
-| 3259 | const | `drawerEl` |
-| 3260-3269 | function | `setDrawer` |
-| 3276 | const | `lastName` |
-| 3277 | const | `resumeAt` |
-| 3292-3705 | async fn | `selfTest` |
-| 3707-3721 | function | `renderSelfTest` |
+| 1980 | const | `isDailyKey` |
+| 1982-1986 | function | `keepDailies` |
+| 1992-1999 | function | `keepDailyAwards` |
+| 2004-2013 | function | `dailyPrompt` |
+| 2017-2026 | function | `untilNextDaily` |
+| 2040 | const | `CODE_TAG` |
+| 2041 | const | `MAX_EDIT_DIRT` |
+| 2043 | const | `b64` |
+| 2045-2046 | const | `unb64` |
+| 2048-2051 | function | `encodeLevel` |
+| 2052-2063 | function | `decodeLevel` |
+| 2064-2068 | const | `codeKey` |
+| 2071-2091 | function | `verifyDef` |
+| 2094-2097 | function | `libLoad` |
+| 2098-2101 | function | `libSave` |
+| 2102-2109 | function | `libAdd` |
+| 2111-2145 | function | `renderCommunity` |
+| 2154-2175 | function | `copyText` |
+| 2178 | let | `ed` |
+| 2179-2187 | function | `edNew` |
+| 2188 | function | `edRows` |
+| 2189-2190 | function | `edDef` |
+| 2192-2216 | function | `edRender` |
+| 2217-2228 | function | `edPaint` |
+| 2229-2234 | function | `edStatus` |
+| 2235-2243 | function | `edResize` |
+| 2246-2296 | function | `buildBoard` |
+| 2310-2315 | function* | `layoutKids` |
+| 2317-2367 | function | `fitCell` |
+| 2370 | let | `cellPx` |
+| 2371-2374 | function | `place` |
+| 2376-2474 | function | `render` |
+| 2482 | let | `pickerEls` |
+| 2483-2495 | function | `buildPicker` |
+| 2496-2517 | function | `renderPicker` |
+| 2520-2524 | const | `FAILS` |
+| 2526-2540 | function | `startLevel` |
+| 2542-2547 | function | `loadLevel` |
+| 2549-2552 | function | `loadCustom` |
+| 2554-2561 | function | `setDiff` |
+| 2563 | let | `lastMoveAt` |
+| 2564-2607 | function | `doMove` |
+| 2612-2633 | function | `buildShare` |
+| 2635-2700 | function | `finish` |
+| 2703-2745 | function | `showHint` |
+| 2747-2753 | function | `lose` |
+| 2755-2767 | function | `undo` |
+| 2770-2771 | const | `KEYS` |
+| 2779 | const | `HOLD_DELAY` |
+| 2780 | let | `heldDirs` |
+| 2781-2785 | function | `holdTick` |
+| 2786-2792 | function | `pressDir` |
+| 2793-2797 | function | `releaseDir` |
+| 2798 | function | `releaseAll` |
+| 2805 | const | `CONTROL_TAGS` |
+| 2806 | const | `isControl` |
+| 2808 | const | `OVERLAY_IDS` |
+| 2809 | const | `openOverlay` |
+| 2811 | const | `overlayButtons` |
+| 2816-2823 | function | `focusOverlay` |
+| 2824-2828 | function | `showOverlay` |
+| 2829-2834 | function | `moveFocus` |
+| 2894 | const | `restart` |
+| 2923-2926 | function | `closeAllOverlays` |
+| 2961 | let | `painting` |
+| 2962-2966 | const | `edCellFrom` |
+| 2982 | let | `edVerified` |
+| 3033-3039 | function | `paintHaptics` |
+| 3051 | const | `isTouch` |
+| 3053-3060 | function | `paintTouchMode` |
+| 3067-3071 | function | `paintSound` |
+| 3080-3084 | function | `paintTimeTrial` |
+| 3093 | let | `generating` |
+| 3094-3113 | async fn | `newSite` |
+| 3123-3143 | function | `refreshDaily` |
+| 3144-3147 | function | `startDaily` |
+| 3157 | let | `tx` |
+| 3169-3173 | function | `swipeIntent` |
+| 3207 | const | `savedDiff` |
+| 3225-3228 | function | `prefersReducedMotion` |
+| 3230 | let | `titleTimer` |
+| 3231-3250 | function | `buildTitle` |
+| 3251-3277 | function | `runTitle` |
+| 3278-3288 | function | `closeTitle` |
+| 3292 | const | `drawerEl` |
+| 3293-3302 | function | `setDrawer` |
+| 3309 | const | `lastName` |
+| 3310 | const | `resumeAt` |
+| 3325-3755 | async fn | `selfTest` |
+| 3757-3771 | function | `renderSelfTest` |
 
 ## Event wiring
 
@@ -627,50 +630,50 @@ this, what ran?" without reading the whole script.
 
 | line | target | event |
 |---|---|---|
-| 2770 | `(page)` | `keyup` |
-| 2771 | `(page)` | `blur` |
-| 2806 | `(page)` | `keydown` |
-| 2863 | `#bWait` | `onclick` |
-| 2864 | `#bUndo` | `onclick` |
-| 2866 | `#bReset` | `onclick` |
-| 2867 | `#bPrev` | `onclick` |
-| 2868 | `#bNext` | `onclick` |
-| 2869 | `#wReplay` | `onclick` |
-| 2870 | `#wShare` | `onclick` |
-| 2871 | `#wNext` | `onclick` |
-| 2872 | `#lUndo` | `onclick` |
-| 2873 | `#lReset` | `onclick` |
-| 2874 | `#diffTag` | `onclick` |
-| 2875 | `#gearTag` | `onclick` |
-| 2876 | `#setClose` | `onclick` |
-| 2877 | `#setReset` | `onclick` |
-| 2887 | `#bHint` | `onclick` |
-| 2894 | `#bEdit` | `onclick` |
-| 2902 | `#edClose` | `onclick` |
-| 2903 | `#impClose` | `onclick` |
-| 2904 | `#bImport` | `onclick` |
-| 2911 | `#edTools button` | `forEach` |
-| 2918 | `.edsize button` | `forEach` |
-| 2947 | `(page)` | `pointerup` |
-| 2950 | `#edVerify` | `onclick` |
-| 2970 | `#edCopy` | `onclick` |
-| 2971 | `#edPlay` | `onclick` |
-| 2978 | `#impGo` | `onclick` |
-| 3007 | `#hapticTag` | `onclick` |
-| 3028 | `#touchTag` | `onclick` |
-| 3039 | `#soundTag` | `onclick` |
-| 3052 | `#timeTrialTag` | `onclick` |
-| 3082 | `[data-tier]` | `forEach` |
-| 3115 | `#bDaily` | `onclick` |
-| 3116 | `#tDaily` | `onclick` |
-| 3117 | `#pad button` | `forEach` |
-| 3120 | `.pick` | `forEach` |
-| 3146 | `(page)` | `resize` |
-| 3162 | `(page)` | `visibilitychange` |
-| 3177 | `.pick` | `forEach` |
-| 3256 | `#tStart` | `onclick` |
-| 3257 | `#title` | `onclick` |
-| 3270 | `#drawerToggle` | `onclick` |
+| 2799 | `(page)` | `keyup` |
+| 2800 | `(page)` | `blur` |
+| 2835 | `(page)` | `keydown` |
+| 2892 | `#bWait` | `onclick` |
+| 2893 | `#bUndo` | `onclick` |
+| 2895 | `#bReset` | `onclick` |
+| 2896 | `#bPrev` | `onclick` |
+| 2897 | `#bNext` | `onclick` |
+| 2898 | `#wReplay` | `onclick` |
+| 2899 | `#wShare` | `onclick` |
+| 2900 | `#wNext` | `onclick` |
+| 2901 | `#lUndo` | `onclick` |
+| 2902 | `#lReset` | `onclick` |
+| 2903 | `#diffTag` | `onclick` |
+| 2904 | `#gearTag` | `onclick` |
+| 2905 | `#setClose` | `onclick` |
+| 2906 | `#setReset` | `onclick` |
+| 2920 | `#bHint` | `onclick` |
+| 2927 | `#bEdit` | `onclick` |
+| 2935 | `#edClose` | `onclick` |
+| 2936 | `#impClose` | `onclick` |
+| 2937 | `#bImport` | `onclick` |
+| 2944 | `#edTools button` | `forEach` |
+| 2951 | `.edsize button` | `forEach` |
+| 2980 | `(page)` | `pointerup` |
+| 2983 | `#edVerify` | `onclick` |
+| 3003 | `#edCopy` | `onclick` |
+| 3004 | `#edPlay` | `onclick` |
+| 3011 | `#impGo` | `onclick` |
+| 3040 | `#hapticTag` | `onclick` |
+| 3061 | `#touchTag` | `onclick` |
+| 3072 | `#soundTag` | `onclick` |
+| 3085 | `#timeTrialTag` | `onclick` |
+| 3115 | `[data-tier]` | `forEach` |
+| 3148 | `#bDaily` | `onclick` |
+| 3149 | `#tDaily` | `onclick` |
+| 3150 | `#pad button` | `forEach` |
+| 3153 | `.pick` | `forEach` |
+| 3179 | `(page)` | `resize` |
+| 3195 | `(page)` | `visibilitychange` |
+| 3210 | `.pick` | `forEach` |
+| 3289 | `#tStart` | `onclick` |
+| 3290 | `#title` | `onclick` |
+| 3303 | `#drawerToggle` | `onclick` |
 
 ## tools/
 

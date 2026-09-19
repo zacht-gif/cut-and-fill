@@ -1969,6 +1969,35 @@ function dailyStreak(bestByDiff, todaySeed){
   return n;
 }
 
+/* Reset clears the campaign, not the calendar. "Clear all progress on all
+   shifts" is a request to replay the game; a daily streak is a record of
+   turning up, not progress through it, and forty days of showing up should
+   not be collateral for wanting to replay level 1.
+
+   This is a hazard the streak created. Before it existed, wiping daily: keys
+   out of `best` cost nothing anyone could see - giving those keys a second
+   meaning made a reset destructive in a way its own prompt never mentioned. */
+const isDailyKey = k => typeof k==="string" && k.slice(0,6)==="daily:";
+
+function keepDailies(obj){
+  const out={};
+  for(const k of Object.keys(obj||{})) if(isDailyKey(k)) out[k]=obj[k];
+  return out;
+}
+
+/* SV.awarded is keyed <shift>:<slot>, and it is the only thing stopping a
+   finished site being replayed at par for a second hint. Keeping the scores
+   while dropping these would reopen exactly the hole that
+   "the same site cannot be farmed for hints" exists to close. */
+function keepDailyAwards(awarded){
+  const out={};
+  for(const k of Object.keys(awarded||{})){
+    const i=k.indexOf(":");
+    if(i>=0 && isDailyKey(k.slice(i+1))) out[k]=awarded[k];
+  }
+  return out;
+}
+
 /* What the title screen should say, as data. Pure, so the suite can check
    the wording at each state without standing up a DOM. `action` false means
    there is nothing left to play today. */
@@ -2875,10 +2904,14 @@ $("#diffTag").onclick=()=>showOverlay("diff");
 $("#gearTag").onclick=()=>showOverlay("settings");
 $("#setClose").onclick=()=>$("#settings").classList.remove("on");
 $("#setReset").onclick=()=>{
-  if(confirm("Clear all progress on all shifts?")){
-    for(const d of DIFF_ORDER){ best[d]={}; SV.clean[d]={}; SV.times[d]={}; }
-    SV.hints=START_HINTS; SV.awarded={};
-    refreshDaily();                      // the streak was derived from what just got wiped
+  if(confirm("Clear all progress on all shifts? Your daily streak is kept.")){
+    for(const d of DIFF_ORDER){
+      best[d]=keepDailies(best[d]);
+      SV.clean[d]=keepDailies(SV.clean[d]);
+      SV.times[d]=keepDailies(SV.times[d]);
+    }
+    SV.hints=START_HINTS; SV.awarded=keepDailyAwards(SV.awarded);
+    refreshDaily();                      // the counts on screen are derived, so repaint
     save();
     loadLevel(0);
     closeAllOverlays();
@@ -3691,6 +3724,23 @@ async function selfTest(){
                             20260918, "3h 12m");
   ok("once today is done the title screen stops asking",
      pDone.action===false && pDone.text==="Daily done ✓ · 2 days", pDone.text);
+
+  // 9d. a progress reset clears the campaign and leaves the calendar alone.
+  //     The streak rides on `best`, so a reset could quietly destroy it.
+  const mixed = mkBest([["operator",20260918],["operator",20260917]]);
+  mixed.operator["First Cut"]=3;
+  const kept = keepDailies(mixed.operator);
+  ok("a reset keeps daily keys and drops campaign ones",
+     kept["daily:20260918"]!=null && kept["daily:20260917"]!=null &&
+     kept["First Cut"]===undefined, Object.keys(kept).join(", "));
+  ok("a streak survives a progress reset",
+     dailyStreak({apprentice:{},operator:kept,foreman:{}}, 20260918)===2);
+  const keptAwards = keepDailyAwards({"operator:daily:20260918":true,
+                                      "operator:First Cut":true});
+  ok("a reset keeps the hint award on a finished daily, so it cannot be farmed",
+     keptAwards["operator:daily:20260918"]===true &&
+     keptAwards["operator:First Cut"]===undefined,
+     Object.keys(keptAwards).join(", "));
 
   // 10. a shared result carries the link and leaks nothing
   loadLevel(0); play(SOLUTIONS[0]);
