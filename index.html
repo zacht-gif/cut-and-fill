@@ -520,6 +520,22 @@ body.ads .adslot{display:flex}
 .tline{color:var(--ink-dim);font-size:11.5px;line-height:1.7;margin:14px 0 18px}
 .tfoot{margin-top:16px;font-size:9px;letter-spacing:.18em;color:#31485a;
   text-transform:uppercase}
+/* The daily call to action. Above Start rather than beside it: the card is
+   420px at most and two buttons side by side wrap on a phone. Lower case and
+   quieter than Start, because it is the second thing to read, not the first. */
+#tDaily{display:block;width:100%;margin:0 0 10px;padding:9px 12px;
+  font-size:10.5px;letter-spacing:.06em;text-transform:none;
+  border-color:var(--line);color:var(--ink-dim)}
+#tDaily.live{border-color:var(--dozer);color:var(--dozer)}
+#tDaily:disabled{cursor:default}
+#tDaily:empty{display:none}
+/* "There is a daily in here." On a phone the drawer starts closed, so without
+   this the daily sits two taps away behind no signal at all. A pseudo-element
+   and not a child node, because setDrawer() rewrites this button's
+   textContent every time it runs and would wipe one out. */
+#drawerToggle.pending::after{content:"";display:inline-block;
+  width:6px;height:6px;border-radius:50%;background:var(--dozer);
+  margin-left:7px;vertical-align:middle}
 /* width:max-content matters — the entities are absolutely positioned from the
    container's left edge, so any centring of the grid tracks inside a wider box
    would slide them out of alignment with the cells. */
@@ -744,6 +760,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;
   <div id="titleStrip"></div>
   <p class="tline">Push dirt into every hole to level the site.<br>
      Dirt is consumed when it drops in — waste a load and you may strand yourself.</p>
+  <button id="tDaily"></button>
   <button class="primary" id="tStart">Start</button>
   <div class="tfoot">© 2026 · all rights reserved</div>
 </div></div>
@@ -1952,6 +1969,20 @@ function dailyStreak(bestByDiff, todaySeed){
   return n;
 }
 
+/* What the title screen should say, as data. Pure, so the suite can check
+   the wording at each state without standing up a DOM. `action` false means
+   there is nothing left to play today. */
+function dailyPrompt(bestByDiff, todaySeed, left){
+  const done=dailyDone(bestByDiff, todaySeed);
+  const n=dailyStreak(bestByDiff, todaySeed);
+  const days=k=>k+(k===1?" day":" days");
+  if(done) return {text:"Daily done ✓"+(n>0?" · "+days(n):""), action:false};
+  /* The streak already breaks on a missed day; what it never did was warn
+     anyone it was about to. A streak that silently resets teaches nothing. */
+  if(n>0) return {text:"📅 Daily — "+n+"-day streak ends in "+left, action:true};
+  return {text:"📅 Play today's daily site", action:true};
+}
+
 /* Whole hours and minutes. The point is "come back tomorrow", not a
    countdown ticking in the corner. */
 function untilNextDaily(now){
@@ -1959,7 +1990,10 @@ function untilNextDaily(now){
   const next=Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()+1);
   const mins=Math.max(0, Math.round((next-d.getTime())/60000));
   const h=Math.floor(mins/60), m=mins%60;
-  return h>0 ? h+"h "+m+"m" : m+"m";
+  /* A non-breaking space, because "21h 4m" wrapped on the title card at 375px
+     and left the minutes orphaned on a line of their own. The duration is one
+     word as far as a reader is concerned, so it should break like one. */
+  return h>0 ? h+"h"+String.fromCharCode(160)+m+"m" : m+"m";
 }
 
 /* ============================================================
@@ -3062,11 +3096,24 @@ function refreshDaily(){
   el.textContent="📅 Daily"+(done?" ✓":"")+(n>0?" · "+n:"");
   el.title=(done?"Today's site is done.":"Today's site. A new one every day at UTC midnight.")
           +(n>0?"  Streak: "+n+(n===1?" day":" days")+".":"");
+
+  const tog=$("#drawerToggle");
+  if(tog&&tog.classList) tog.classList.toggle("pending",!done);
+
+  const td=$("#tDaily");
+  if(td){
+    const pr=dailyPrompt(best,t.seed,untilNextDaily());
+    td.textContent=pr.text;
+    td.disabled=!pr.action;
+    if(td.classList) td.classList.toggle("live",pr.action&&n>0);
+  }
 }
-$("#bDaily").onclick=()=>{
+function startDaily(){
   const t=todayUTC();
   newSite("medium", t.seed, "Daily Site — "+t.date, "daily:"+t.seed);
-};
+}
+$("#bDaily").onclick=startDaily;
+$("#tDaily").onclick=()=>{ closeTitle(); startDaily(); };
 document.querySelectorAll("#pad button").forEach(b=>{
   b.onclick=()=>doMove(+b.dataset.d);
 });
@@ -3623,9 +3670,27 @@ async function selfTest(){
   ok("a daily site is recognised by its save key, and nothing else is",
      dailySeedOf({key:"daily:20260918"})===20260918 &&
      dailySeedOf({key:"CF1abc"})===null && dailySeedOf(null)===null);
-  ok("the next daily is counted to UTC midnight",
-     untilNextDaily(new Date("2026-09-18T22:30:00Z"))==="1h 30m",
+  ok("the next daily is counted to UTC midnight, and does not wrap",
+     untilNextDaily(new Date("2026-09-18T22:30:00Z"))
+       ==="1h"+String.fromCharCode(160)+"30m",
      untilNextDaily(new Date("2026-09-18T22:30:00Z")));
+
+  // 9c. what the title screen offers. The streak already broke on a missed
+  //     day; the point of these is the warning, which is the part a player
+  //     can act on.
+  const pFresh = dailyPrompt(mkBest([]), 20260918, "3h 12m");
+  ok("with no daily played, the title screen offers today's",
+     pFresh.action===true && pFresh.text.indexOf("Play today")>=0, pFresh.text);
+  const pRisk = dailyPrompt(mkBest([["operator",20260917],["operator",20260916]]),
+                            20260918, "3h"+String.fromCharCode(160)+"12m");
+  ok("with a streak going, the title screen says what is about to be lost",
+     pRisk.action===true &&
+     pRisk.text==="📅 Daily — 2-day streak ends in 3h"+String.fromCharCode(160)+"12m",
+     pRisk.text);
+  const pDone = dailyPrompt(mkBest([["operator",20260918],["operator",20260917]]),
+                            20260918, "3h 12m");
+  ok("once today is done the title screen stops asking",
+     pDone.action===false && pDone.text==="Daily done ✓ · 2 days", pDone.text);
 
   // 10. a shared result carries the link and leaks nothing
   loadLevel(0); play(SOLUTIONS[0]);
